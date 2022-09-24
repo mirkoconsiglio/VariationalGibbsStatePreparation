@@ -1,0 +1,10 @@
+\documentclass[tikz]{standalone}
+\usetikzlibrary{quantikz}
+\begin{document}
+\begin{quantikz}
+\lstick{q[0]} & \gate[1]{\text{$R_Y$($\theta_{0}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{2}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{4}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{6}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{8}$)}} & \ctrl{2} & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw \\
+\lstick{q[1]} & \gate[1]{\text{$R_Y$($\theta_{1}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{3}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{5}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{7}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{9}$)}} & \qw & \ctrl{2} & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw \\
+\lstick{q[2]} & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \targ{} & \qw & \gate[1]{\text{$R_Y$($\theta_{10}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{12}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{14}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{16}$)}} & \ctrl{1} & \gate[1]{\text{$R_Y$($\theta_{18}$)}} & \qw \\
+\lstick{q[3]} & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \targ{} & \gate[1]{\text{$R_Y$($\theta_{11}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{13}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{15}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{17}$)}} & \targ{} & \gate[1]{\text{$R_Y$($\theta_{19}$)}} & \qw \\
+\end{quantikz}
+\end{document}
