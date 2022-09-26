@@ -1,3 +1,4 @@
+import numpy as np
 from gibbs_ising_qulacs import GibbsIsing
 from gibbs_functions import ExactResult, fidelity, trace_distance, relative_entropy
 
@@ -9,12 +10,10 @@ def main():
 	h = 0.5
 	beta = 1
 	shots = 1024  # Number of shots to sample
-	seed = None
-	noise_model = True
+	seed = 0
+	noise_model = False
 	# Define minimizer kwargs
-	# min_kwargs = dict()
-	min_kwargs = dict(maxfun=350, no_local_search=True, restart_temp_ratio=1e-10,
-	                  initial_temp=1, visit=2.62, accept=-5)
+	min_kwargs = dict(learning_rate=0.1)
 	# Run VQA
 	gibbs = GibbsIsing(n, J, h, beta)
 	calculated_result = gibbs.run(min_kwargs, shots=shots, seed=seed, noise_model=noise_model)

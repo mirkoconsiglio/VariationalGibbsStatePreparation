@@ -61,20 +61,18 @@ def ising_hamiltonian(n, J=1., h=0.5):
 	return hamiltonian
 
 
-def ising_hamiltonian_commuting_terms(n, J=1., h=0.5, q_reg=None):
-	if q_reg is None:
-		q_reg = range(n)
+def ising_hamiltonian_commuting_terms(n, J=1., h=0.5):
 	terms = dict()
 	if J != 0:
-		terms.update(ising_even_odd=[-J, [[q_reg[i], q_reg[i + 1]] for i in range(0, n - 1, 2)]])
+		terms.update(ising_even_odd=[-J, [[i, i + 1] for i in range(0, n - 1, 2)]])
 		if n > 2:
 			if n % 2 == 0:
-				terms.update(ising_odd_even=[-J, [[q_reg[i], q_reg[i + 1]] for i in range(1, n - 2, 2)] + [[0, n - 1]]])
+				terms.update(ising_odd_even=[-J, [[i, i + 1] for i in range(1, n - 2, 2)] + [[0, n - 1]]])
 			else:
-				terms.update(ising_odd_even=[-J, [[q_reg[i], q_reg[i + 1]] for i in range(1, n - 2, 2)]])
+				terms.update(ising_odd_even=[-J, [[i, i + 1] for i in range(1, n - 2, 2)]])
 				terms.update(ising_closed=[-J, [[0, n - 1]]])
 	if h != 0:
-		terms.update(z=[-h, q_reg])
+		terms.update(z=[-h, list(range(n))])
 
 	return terms
 

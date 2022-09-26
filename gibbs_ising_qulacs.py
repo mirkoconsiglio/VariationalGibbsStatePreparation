@@ -5,13 +5,11 @@ from itertools import product
 from functools import reduce
 from qiskit.algorithms.optimizers import *
 from qiskit.utils import algorithm_globals
-from qulacs.circuit import QuantumCircuitOptimizer
 from qulacs import ParametricQuantumCircuit, QuantumState
-from qulacs.gate import (ParametricRY, CNOT, H, Sdag, AmplitudeDampingNoise, DephasingNoise, DepolarizingNoise,
-                         BitFlipNoise, TwoQubitDepolarizingNoise, ParametricPauliRotation)
+from qulacs.gate import (sqrtX, RZ, ParametricRZ, CNOT, AmplitudeDampingNoise, DephasingNoise, DepolarizingNoise,
+                         BitFlipNoise, TwoQubitDepolarizingNoise)
 from qulacs.observable import create_observable_from_openfermion_text
 from qulacs.state import partial_trace
-from scipy.optimize import dual_annealing
 from scipy.special import xlogy
 from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms
 from qulacsvis import circuit_drawer
@@ -58,6 +56,7 @@ class GibbsIsing:
 		self.eigenvectors = None
 		self.commuting_terms = None
 		self.pauli_circuits = None
+		self.grad_pauli_circuits = None
 		self.total_shots = None
 		self.cost_fun = None
 		self.gradient_fun = None
@@ -87,9 +86,9 @@ class GibbsIsing:
 		self.shots = shots
 		if self.shots:
 			self.cost_fun = self.sampled_cost_fun
-			self.gradient_fun = None  # self.sampled_gradient_fun
-			self.commuting_terms = ising_hamiltonian_commuting_terms(self.n, self.J, self.h, self.system_qubits)
-			self.pauli_circuits = self.generate_measurement_circuits()
+			self.gradient_fun = self.sampled_gradient_fun
+			self.commuting_terms = ising_hamiltonian_commuting_terms(self.n, self.J, self.h)
+			self.pauli_circuits, self.grad_pauli_circuits = self.generate_measurement_circuits()
 			self.total_shots = self.shots * len(self.commuting_terms)
 		else:
 			self.cost_fun = self.statevector_cost_fun
@@ -98,8 +97,8 @@ class GibbsIsing:
 		self.iter = 0
 		self.nfev = 0
 		print('| iter | nfev | Cost | Energy | Entropy |')
-		# self.result = SPSA(**self.min_kwargs).minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds)
-		self.result = dual_annealing(func=self.cost_fun, x0=self.x0, bounds=self.bounds, **self.min_kwargs)
+		self.result = GradientDescent(**self.min_kwargs).minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds,
+		                                                          jac=self.gradient_fun)
 		# Update
 		self.params = self.result.x
 		self.cost = self.result.fun
@@ -136,14 +135,15 @@ class GibbsIsing:
 			circuit.add_gate(gate)
 		if self.noise_model:
 			match gate.get_name():
-				case 'ParametricPauliRotation':
-					[q1, q2] = gate.get_target_index_list()
+				case 'CNOT':
+					q1 = gate.get_control_index_list()[0]
+					q2 = gate.get_target_index_list()[0]
 					circuit.add_gate(AmplitudeDampingNoise(q1, self.noise_model['two_qubit_t1']))
 					circuit.add_gate(AmplitudeDampingNoise(q2, self.noise_model['two_qubit_t1']))
 					circuit.add_gate(DephasingNoise(q1, self.noise_model['two_qubit_t2']))
 					circuit.add_gate(DephasingNoise(q2, self.noise_model['two_qubit_t2']))
 					circuit.add_gate(TwoQubitDepolarizingNoise(q1, q2, self.noise_model['two_qubit_depo']))
-				case _:
+				case 'sqrtX':
 					q = gate.get_target_index_list()[0]
 					circuit.add_gate(AmplitudeDampingNoise(q, self.noise_model['one_qubit_t1']))
 					circuit.add_gate(DephasingNoise(q, self.noise_model['one_qubit_t2']))
@@ -152,6 +152,29 @@ class GibbsIsing:
 	def add_readout_noise(self, circuit):
 		for i in range(circuit.get_qubit_count()):
 			circuit.add_gate(BitFlipNoise(i, self.noise_model['readout']))
+
+	def add_qiskit_ising_gate(self, qc, q1, q2): # U = R_yx.R_xy
+		self.add_gate_to_circuit(qc, sqrtX(q1))
+		self.add_gate_to_circuit(qc, sqrtX(q2))
+		self.add_gate_to_circuit(qc, RZ(q1, np.pi / 2))
+		self.add_gate_to_circuit(qc, CNOT(q1, q2))
+		self.add_gate_to_circuit(qc, RZ(q1, np.pi))
+		self.add_gate_to_circuit(qc, ParametricRZ(q2, 0))
+		self.add_gate_to_circuit(qc, sqrtX(q1))
+		self.add_gate_to_circuit(qc, sqrtX(q2))
+		self.add_gate_to_circuit(qc, ParametricRZ(q1, 0))
+		self.add_gate_to_circuit(qc, RZ(q2, np.pi))
+		self.add_gate_to_circuit(qc, sqrtX(q1))
+		self.add_gate_to_circuit(qc, RZ(q1, np.pi / 2))
+		self.add_gate_to_circuit(qc, CNOT(q1, q2))
+		self.add_gate_to_circuit(qc, sqrtX(q1))
+		self.add_gate_to_circuit(qc, RZ(q2, np.pi / 2))
+
+	def add_qiskit_ry_gate(self, qc, q):
+		self.add_gate_to_circuit(qc, sqrtX(q))
+		self.add_gate_to_circuit(qc, ParametricRZ(q, 0))
+		self.add_gate_to_circuit(qc, sqrtX(q))
+		self.add_gate_to_circuit(qc, RZ(q, np.pi))
 
 	def init_var_ansatz(self):
 		self.ansatz = ParametricQuantumCircuit(self.total_n)
@@ -179,13 +202,13 @@ class GibbsIsing:
 		# Layers
 		for _ in range(self.ancilla_reps):
 			for i in qubits:
-				self.add_gate_to_circuit(qc, ParametricRY(i, 0))
+				self.add_qiskit_ry_gate(qc, i)
 				if i > qubits[0]:
 					self.add_gate_to_circuit(qc, CNOT(i - 1, i))
 
 		# Last one-qubit layer
 		for i in qubits:
-			self.add_gate_to_circuit(qc, ParametricRY(i, 0))
+			self.add_qiskit_ry_gate(qc, i)
 
 		return qc
 
@@ -197,11 +220,9 @@ class GibbsIsing:
 
 		for _ in range(self.system_reps):
 			for i in range(0, len(qubits) - 1, 2):
-				self.add_gate_to_circuit(qc, ParametricPauliRotation([qubits[i], qubits[i + 1]], [1, 2], 0))
-				self.add_gate_to_circuit(qc, ParametricPauliRotation([qubits[i], qubits[i + 1]], [2, 1], 0))
+				self.add_qiskit_ising_gate(qc, qubits[i], qubits[i + 1])
 			for i in range(1, len(qubits) - 1, 2):
-				self.add_gate_to_circuit(qc, ParametricPauliRotation([qubits[i], qubits[i + 1]], [1, 2], 0))
-				self.add_gate_to_circuit(qc, ParametricPauliRotation([qubits[i], qubits[i + 1]], [2, 1], 0))
+				self.add_qiskit_ising_gate(qc, qubits[i], qubits[i + 1])
 
 		# # Layers
 		# for _ in range(self.system_reps):
@@ -251,17 +272,24 @@ class GibbsIsing:
 
 	def generate_measurement_circuits(self):
 		pauli_circuits = []
+		grad_pauli_circuits = []
 		for label, (_, terms) in self.commuting_terms.items():
 			pauli_circ = self.ansatz.copy()
+			grad_pauli_circ = self.system_ansatz.copy()
 			if label != 'z':
 				for qubits in terms:
-					for q in qubits:
-						self.add_gate_to_circuit(pauli_circ, H(q))
+					for q in qubits: # Hadamard gate
+						self.add_gate_to_circuit(pauli_circ, RZ(q + self.n, np.pi / 2))
+						self.add_gate_to_circuit(pauli_circ, sqrtX(q + self.n))
+						self.add_gate_to_circuit(grad_pauli_circ, RZ(q, np.pi / 2))
+						self.add_gate_to_circuit(grad_pauli_circ, sqrtX(q))
 			if self.noise_model:
 				self.add_readout_noise(pauli_circ)
+				self.add_readout_noise(grad_pauli_circ)
 			pauli_circuits.append(pauli_circ)
+			grad_pauli_circuits.append(grad_pauli_circ)
 
-		return pauli_circuits
+		return pauli_circuits, grad_pauli_circuits
 
 	def tomography(self):
 		if self.shots:
@@ -291,16 +319,20 @@ class GibbsIsing:
 				return s
 
 			sigma = np.zeros(self.dimension, dtype=np.float64)
-			rho = np.zeros((self.dimension, self.dimension), dtype=np.complex128)
+			rho = np.zeros((self.dimension, self.dimension), dtype=np.float64)
+			m = 0
 			# Construct measurement circuits
-			for m in product(['X', 'Y', 'Z'], repeat=self.n):
+			for measurement in list(product(['X', 'Y', 'Z'], repeat=self.n)):
+				if measurement.count('Y') % 2 == 1: # We don't want imaginary terms
+					continue
+				m += 1
 				circuit = self.ansatz.copy()
-				for i, t in enumerate(m):
-					if t == 'X':
-						self.add_gate_to_circuit(circuit, H(self.system_qubits[i]))
+				for i, t in enumerate(measurement):
+					if t == 'X': # Hadamard gate
+						self.add_gate_to_circuit(circuit, RZ(self.system_qubits[i], np.pi / 2))
+						self.add_gate_to_circuit(circuit, sqrtX(self.system_qubits[i]))
 					elif t == 'Y':
-						self.add_gate_to_circuit(circuit, Sdag(self.system_qubits[i]))
-						self.add_gate_to_circuit(circuit, H(self.system_qubits[i]))
+						self.add_gate_to_circuit(circuit, sqrtX(self.system_qubits[i]))
 					self.set_parameters(circuit, self.params)
 				if self.noise_model:
 					self.add_readout_noise(circuit)
@@ -310,19 +342,19 @@ class GibbsIsing:
 				circuit.update_quantum_state(self.state)
 				# Sample
 				samples = Counter(self.state.sampling(self.shots, self.seed)).items()
-				counts = [[self.get_bit_string(i, self.total_n), j] for (i, j) in samples]
+				counts = [[self.get_bit_string(i, self.total_n), j] for i, j in samples]
 				# Compute rho and sigma
 				for shot, n in counts:
-					# rho
-					for pauli_string in pauli_helper(m):
+					# rho (assuming the state is real)
+					for pauli_string in pauli_helper(measurement):
 						post_process_vector = reduce(np.kron, [post_process_strings[i] for i in pauli_string])
-						pauli_matrix = reduce(np.kron, [pauli[i] for i in pauli_string])
+						pauli_matrix = reduce(np.kron, [pauli[i] for i in pauli_string]).real
 						coef = post_process_vector[int(shot[self.n:], 2)]
 						rho += coef * pauli_matrix * n
 					# sigma (assuming the state is diagonal)
 					sigma[int(shot[:self.n], 2)] += n
 			rho /= self.shots * self.dimension
-			sigma /= self.shots * 3 ** self.n  # might as well use the 3^n measurements to compute with better accurary
+			sigma /= self.shots * m  # might as well use the m measurements to compute with better accuracy
 		else:
 			self.state.set_zero_state()
 			self.set_parameters(self.ansatz, self.params)
@@ -347,41 +379,40 @@ class GibbsIsing:
 		# 	print(f'| {self.iter} | {self.nfev} | {self.cost:.8f} | {self.energy:.8f} | {self.entropy:.8f} |')
 		return self.cost
 
-	# TODO: statevector_gradient_fun
-	def statevector_gradient_fun(self, x):  # TODO: Check qulacs gates for parameter shift rule
+	def statevector_gradient_fun(self, x):
 		self.params = x
-		self.nfev += self.num_params + 2 * self.num_params ** 2
+		self.nfev += self.dimension * (1 + 2 * self.num_params)
 		r = 0.5
 		shift = np.pi / (4 * r)
-		p = np.zeros(self.dimension)
-		p_gradient = np.zeros((self.dimension, self.num_ancilla_params))
-		U = np.zeros(self.dimension)
-		U_gradient = np.zeros((self.dimension, self.num_system_params))
+		p = np.zeros(self.dimension) # p evaluated at x
+		p_gradient = np.zeros((self.dimension, self.num_ancilla_params)) # gradient of p at x
+		U = np.zeros(self.dimension) # expectation of U at x
+		U_gradient = np.zeros((self.dimension, self.num_system_params)) # gradient of the expectation of U at x
 		# Evaluate ancilla unitary stuff
 		for i in range(self.dimension):
 			bit_list = self.get_bit_list(i, self.n)
-			# default ancilla
+			# p_i evaluated at x
 			params = self.ancilla_params().copy()
 			self.grad_state.set_zero_state()
 			self.set_parameters(self.ancilla_ansatz, params)
 			self.ancilla_ansatz.update_quantum_state(self.grad_state)
 			p[i] = self.grad_state.get_marginal_probability(bit_list)
 			for j in range(self.num_ancilla_params):
-				# p_plus
+				# p_ij_plus
 				params = self.ancilla_params().copy()
 				params[j] += shift
 				self.grad_state.set_zero_state()
 				self.set_parameters(self.ancilla_ansatz, params)
 				self.ancilla_ansatz.update_quantum_state(self.grad_state)
 				p_plus = self.grad_state.get_marginal_probability(bit_list)
-				# p_minus
+				# p_ij_minus
 				params = self.ancilla_params().copy()
 				params[j] -= shift
 				self.grad_state.set_zero_state()
 				self.set_parameters(self.ancilla_ansatz, params)
 				self.ancilla_ansatz.update_quantum_state(self.grad_state)
 				p_minus = self.grad_state.get_marginal_probability(bit_list)
-				# p_gradient
+				# p_ij_gradient
 				p_gradient[i, j] = r * (p_plus - p_minus)
 		# Evaluate system unitary stuff
 		for i in range(self.dimension):
@@ -409,7 +440,7 @@ class GibbsIsing:
 				# U_gradient
 				U_gradient[i, j] = r * (U_plus - U_minus)
 		# Evaluate ancilla_params_gradient
-		ancilla_params_gradient = [np.sum([p_gradient[k, i] * (U[k] - self.inverse_beta * (np.log(p[k]) + 1))
+		ancilla_params_gradient = [np.sum([p_gradient[k, i] * (U[k] + self.inverse_beta * (np.log(p[k]) + 1))
 		                                   for k in range(self.dimension)]) for i in range(self.num_ancilla_params)]
 		# Evaluate system_params_gradient
 		system_params_gradient = [np.sum([p[k] * U_gradient[k, i] for k in range(self.dimension)]) for i in
@@ -417,22 +448,24 @@ class GibbsIsing:
 
 		return np.concatenate((ancilla_params_gradient, system_params_gradient))
 
+	@staticmethod
+	def all_z_expectation(shot, n):
+		return 2 * shot.count('0') - n
+
+	@staticmethod
+	def xx_expectation(shot, q1, q2):
+		return 1 if shot[q1] == shot[q2] else -1
+
+	@staticmethod
+	def probabilities(p, shot, n):
+		j = 0
+		for b in shot:
+			j = (j << 1) | int(b)
+		p[j] += n
+
 	def sampled_cost_fun(self, x):
 		self.nfev += 1
 		self.params = x
-
-		def all_z_expectation(shot):
-			return 2 * shot[self.n:].count('0') - self.n
-
-		def xx_expectation(shot, q1, q2):
-			return 1 if shot[q1] == shot[q2] else -1
-
-		def entropy(p, shot):
-			j = 0
-			for b in shot[:self.n]:
-				j = (j << 1) | int(b)
-			p[j] += n
-
 		energy = 0
 		p = np.zeros(self.dimension)
 		for pauli_circ, (label, (coef, qubits)) in zip(self.pauli_circuits, self.commuting_terms.items()):
@@ -442,21 +475,21 @@ class GibbsIsing:
 			pauli_circ.update_quantum_state(self.state)
 			# Sample
 			samples = Counter(self.state.sampling(self.shots, self.seed)).items()
-			counts = [[self.get_bit_string(i, self.total_n), j] for (i, j) in samples]
+			counts = [[self.get_bit_string(i, self.total_n), j] for i, j in samples]
 			# Evaluate energy and entropy
 			if label == 'z':
 				for shot, n in counts:
 					# Energy
-					energy += all_z_expectation(shot) * coef * n
+					energy += self.all_z_expectation(shot[self.n:], self.n) * coef * n
 					# Entropy
-					entropy(p, shot)
+					self.probabilities(p, shot[:self.n], n)
 			else:
 				for shot, n in counts:
 					# Energy
 					for q1, q2 in qubits:
-						energy += xx_expectation(shot, q1, q2) * coef * n
+						energy += self.xx_expectation(shot[self.n:], q1, q2) * coef * n
 					# Entropy
-					entropy(p, shot)
+					self.probabilities(p, shot[:self.n], n)
 
 		self.energy = energy / self.shots
 		self.eigenvalues = p / self.total_shots
@@ -465,9 +498,93 @@ class GibbsIsing:
 
 		return self.cost
 
-	# TODO: sampled_gradient_fun
+	def get_grad_sampled_marginal_probability(self, bit_string):
+		samples = Counter(self.grad_state.sampling(self.shots, self.seed)).items()
+		return next((i[1] for i in samples if self.get_bit_string(i[0], self.n) == bit_string), 0) / self.shots
+
+	def get_grad_sampled_expectation_value(self, k, params):
+		energy = 0
+		for grad_pauli_circ, (label, (coef, qubits)) in zip(self.grad_pauli_circuits, self.commuting_terms.items()):
+			# Update quantum state
+			self.grad_state.set_computational_basis(k)
+			self.set_parameters(grad_pauli_circ, params)
+			grad_pauli_circ.update_quantum_state(self.grad_state)
+			# Sample
+			samples = Counter(self.grad_state.sampling(self.shots, self.seed)).items()
+			counts = [[self.get_bit_string(i, self.n), j] for i, j in samples]
+			# Evaluate energy
+			if label == 'z':
+				for shot, n in counts:
+					energy += self.all_z_expectation(shot, self.n) * coef * n
+			else:
+				for shot, n in counts:
+					for q1, q2 in qubits:
+						energy += self.xx_expectation(shot, q1, q2) * coef * n
+
+		return energy / self.shots
+
 	def sampled_gradient_fun(self, x):
-		pass
+		self.params = x
+		self.nfev += self.dimension * (1 + 2 * self.num_params)
+		r = 0.5
+		shift = np.pi / (4 * r)
+		p = np.zeros(self.dimension)  # p evaluated at x
+		p_gradient = np.zeros((self.dimension, self.num_ancilla_params))  # gradient of p at x
+		U = np.zeros(self.dimension)  # expectation of U at x
+		U_gradient = np.zeros((self.dimension, self.num_system_params))  # gradient of the expectation of U at x
+		# Evaluate ancilla unitary stuff
+		for i in range(self.dimension):
+			bit_string = self.get_bit_string(i, self.n)
+			# p_i evaluated at x
+			params = self.ancilla_params().copy()
+			self.grad_state.set_zero_state()
+			self.set_parameters(self.ancilla_ansatz, params)
+			self.ancilla_ansatz.update_quantum_state(self.grad_state)
+			p[i] = self.get_grad_sampled_marginal_probability(bit_string)
+			for j in range(self.num_ancilla_params):
+				# p_ij_plus
+				params = self.ancilla_params().copy()
+				params[j] += shift
+				self.grad_state.set_zero_state()
+				self.set_parameters(self.ancilla_ansatz, params)
+				self.ancilla_ansatz.update_quantum_state(self.grad_state)
+				p_plus = self.get_grad_sampled_marginal_probability(bit_string)
+				# p_ij_minus
+				params = self.ancilla_params().copy()
+				params[j] -= shift
+				self.grad_state.set_zero_state()
+				self.set_parameters(self.ancilla_ansatz, params)
+				self.ancilla_ansatz.update_quantum_state(self.grad_state)
+				p_minus = self.get_grad_sampled_marginal_probability(bit_string)
+				# p_ij_gradient
+				p_gradient[i, j] = r * (p_plus - p_minus)
+		# Evaluate system unitary stuff
+		for i in range(self.dimension):
+			# default system
+			params = self.system_params().copy()
+			U[i] = self.get_grad_sampled_expectation_value(i, params)
+			for j in range(self.num_system_params):
+				# U_plus
+				params = self.system_params().copy()
+				params[j] += shift
+				self.grad_state.set_computational_basis(i)
+				U_plus = self.get_grad_sampled_expectation_value(i, params)
+				# U_minus
+				params = self.system_params().copy()
+				params[j] -= shift
+				self.grad_state.set_computational_basis(i)
+				U_minus = self.get_grad_sampled_expectation_value(i, params)
+				# U_gradient
+				U_gradient[i, j] = r * (U_plus - U_minus)
+
+		# Evaluate ancilla_params_gradient
+		ancilla_params_gradient = [np.sum([p_gradient[k, i] * (U[k] + self.inverse_beta * (np.log(p[k]) + 1))
+		                                   for k in range(self.dimension)]) for i in range(self.num_ancilla_params)]
+		# Evaluate system_params_gradient
+		system_params_gradient = [np.sum([p[k] * U_gradient[k, i] for k in range(self.dimension)]) for i in
+		                          range(self.num_system_params)]
+
+		return np.concatenate((ancilla_params_gradient, system_params_gradient))
 
 
 class GibbsResult:
