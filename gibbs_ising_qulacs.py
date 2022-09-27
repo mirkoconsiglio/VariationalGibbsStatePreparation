@@ -1,22 +1,44 @@
 import json
-import numpy as np
 from collections import Counter
-from itertools import product
 from functools import reduce
-from qiskit.algorithms.optimizers import *
+from itertools import product
+
 from qiskit.utils import algorithm_globals
 from qulacs import ParametricQuantumCircuit, QuantumState
 from qulacs.gate import (sqrtX, RZ, ParametricRZ, CNOT, AmplitudeDampingNoise, DephasingNoise, DepolarizingNoise,
                          BitFlipNoise, TwoQubitDepolarizingNoise)
 from qulacs.observable import create_observable_from_openfermion_text
 from qulacs.state import partial_trace
+from scipy.optimize import *
 from scipy.special import xlogy
+from sklearn.gaussian_process.kernels import *
+from skopt import *
+
 from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms
-from qulacsvis import circuit_drawer
+
+
+class GibbsResult(OptimizeResult):
+	def __init__(self, gibbs) -> OptimizeResult:
+		super().__init__(dict(result=gibbs.result,
+		                      ancilla_unitary_params=gibbs.ancilla_params(),
+		                      system_unitary_params=gibbs.system_params(),
+		                      optimal_parameters=gibbs.params,
+		                      ancilla_unitary=gibbs.ancilla_unitary_matrix(),
+		                      system_unitary=gibbs.system_unitary_matrix(),
+		                      cost=gibbs.cost,
+		                      energy=gibbs.energy,
+		                      entropy=gibbs.entropy,
+		                      gibbs_state=gibbs.rho,
+		                      noiseless_gibbs_state=gibbs.noiseless_rho,
+		                      eigenvalues=gibbs.eigenvalues,
+		                      noiseless_eigenvalues=gibbs.noiseless_eigenvalues,
+		                      eigenvectors=gibbs.eigenvectors,
+		                      hamiltonian_eigenvalues=gibbs.hamiltonian_eigenvalues,
+		                      noiseless_hamiltonian_eigenvalues=gibbs.noiseless_hamiltonian_eigenvalues))
 
 
 class GibbsIsing:
-	def __init__(self, n, J, h, beta):
+	def __init__(self, n: int, J: float, h: float, beta: float) -> object:
 		self.n = n
 		self.J = J
 		self.h = h
@@ -50,9 +72,12 @@ class GibbsIsing:
 		self.nfev = None
 		self.rho = None
 		self.sigma = None
+		self.noiseless_rho = None
+		self.noiseless_sigma = None
 		self.result = None
 		self.shots = None
 		self.eigenvalues = None
+		self.noiseless_eigenvalues = None
 		self.eigenvectors = None
 		self.commuting_terms = None
 		self.pauli_circuits = None
@@ -61,10 +86,36 @@ class GibbsIsing:
 		self.cost_fun = None
 		self.gradient_fun = None
 		self.hamiltonian_eigenvalues = None
+		self.noiseless_hamiltonian_eigenvalues = None
+		self.noise = None
 		self.noise_model = None
 
-	def run(self, min_kwargs=None, x0=None, shots=None, ancilla_reps=None, system_reps=None, seed=None,
-	        noise_model=None):
+	def run(self,
+	        min_kwargs: dict | None = None,
+	        x0: list[float] | None = None,
+	        shots: int | None = None,
+	        ancilla_reps: int | None = None,
+	        system_reps: int | None = None,
+	        seed: int | None = None,
+	        noise_model: bool = False
+	        ) -> GibbsResult:
+		"""
+		Executes the variational quantum algorithm for determining the Gibbs states of the Ising model.
+
+		:param min_kwargs: optional kwargs for the minimizer.
+		:param x0: initial set of points for the minimizer, defaults to None. If None, a random list of
+			params between 0 and 2π is chosen.
+		:param shots: number of shots to simulate circuits, defaults to None. If None, then statevector
+			simulations are carried out.
+		:param ancilla_reps: number of layer repetitions for the ancillary circuit, defaults to number of qubits n - 1
+		:param system_reps: number of layer repetitions for the ancillary circuit, defaults to None. If None, then it is
+		    set to the number of qubits: n - 1
+		:param seed: seed for the simulations, defaults to None. If None, it is set to a random number
+			between 0 and 2 ** 32 - 1
+		:param noise_model: whether to use noise_model.json as a noise model. Can be customized by
+			generate_noise_model_qulacs.py.
+		:return: GibbsResult object containing
+		"""
 		self.seed = seed if seed is not None else np.random.randint(2 ** 32)
 		np.random.seed(self.seed)
 		algorithm_globals.random_seed = self.seed
@@ -97,14 +148,24 @@ class GibbsIsing:
 		self.iter = 0
 		self.nfev = 0
 		print('| iter | nfev | Cost | Energy | Entropy |')
-		self.result = GradientDescent(**self.min_kwargs).minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds,
-		                                                          jac=self.gradient_fun)
+		# self.result = SPSA(**self.min_kwargs).minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds,
+		#                                                jac=self.gradient_fun)
+		self.result = gp_minimize(func=self.cost_fun, dimensions=self.bounds, n_calls=100, n_initial_points=20,
+		                          acq_func='PI', xi=0.01, initial_point_generator='lhs', **self.min_kwargs)
 		# Update
 		self.params = self.result.x
-		self.cost = self.result.fun
-		self.rho, self.sigma = self.tomography()
+		# noinspection PyArgumentList
+		self.cost_fun(self.params)
+		self.noiseless_rho, self.noiseless_sigma = self.statevector_tomography()
+		if self.shots:
+			self.rho, self.sigma = self.sampled_tomography()
+		else:
+			self.rho, self.sigma = self.noiseless_rho, self.noiseless_sigma
 		self.eigenvalues = np.sort(self.sigma)
+		self.noiseless_eigenvalues = np.sort(self.noiseless_sigma)
 		self.hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta * np.log(self.eigenvalues))
+		self.noiseless_hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta *
+		                                                 np.log(self.noiseless_eigenvalues))
 
 		return GibbsResult(self)
 
@@ -153,7 +214,7 @@ class GibbsIsing:
 		for i in range(circuit.get_qubit_count()):
 			circuit.add_gate(BitFlipNoise(i, self.noise_model['readout']))
 
-	def add_qiskit_ising_gate(self, qc, q1, q2): # U = R_yx.R_xy
+	def add_qiskit_ising_gate(self, qc, q1, q2):  # U = R_yx.R_xy
 		self.add_gate_to_circuit(qc, sqrtX(q1))
 		self.add_gate_to_circuit(qc, sqrtX(q2))
 		self.add_gate_to_circuit(qc, RZ(q1, np.pi / 2))
@@ -224,17 +285,6 @@ class GibbsIsing:
 			for i in range(1, len(qubits) - 1, 2):
 				self.add_qiskit_ising_gate(qc, qubits[i], qubits[i + 1])
 
-		# # Layers
-		# for _ in range(self.system_reps):
-		# 	for i in qubits:
-		# 		self.add_gate_to_circuit(qc, ParametricRY(i, 0))
-		# 		if i > qubits[0]:
-		# 			self.add_gate_to_circuit(qc, CNOT(i - 1, i))
-		#
-		# # Last one-qubit layer
-		# for i in qubits:
-		# 	self.add_gate_to_circuit(qc, ParametricRY(i, 0))
-
 		return qc
 
 	def ancilla_params(self):
@@ -278,7 +328,7 @@ class GibbsIsing:
 			grad_pauli_circ = self.system_ansatz.copy()
 			if label != 'z':
 				for qubits in terms:
-					for q in qubits: # Hadamard gate
+					for q in qubits:  # Hadamard gate
 						self.add_gate_to_circuit(pauli_circ, RZ(q + self.n, np.pi / 2))
 						self.add_gate_to_circuit(pauli_circ, sqrtX(q + self.n))
 						self.add_gate_to_circuit(grad_pauli_circ, RZ(q, np.pi / 2))
@@ -291,76 +341,78 @@ class GibbsIsing:
 
 		return pauli_circuits, grad_pauli_circuits
 
-	def tomography(self):
-		if self.shots:
-			post_process_strings = {
-				'I': np.array([1, 1]),
-				'X': np.array([1, -1]),
-				'Y': np.array([1, -1]),
-				'Z': np.array([1, -1])
-			}
-			pauli = {
-				'I': np.array([[1, 0], [0, 1]]),
-				'X': np.array([[0, 1], [1, 0]]),
-				'Y': np.array([[0, -1j], [1j, 0]]),
-				'Z': np.array([[1, 0], [0, -1]])
-			}
+	def statevector_tomography(self):
+		self.state.set_zero_state()
+		self.set_parameters(self.ansatz, self.params)
+		self.ansatz.update_quantum_state(self.state)
+		rho = partial_trace(self.state, self.ancilla_qubits).get_matrix().real
+		sigma = partial_trace(self.state, self.system_qubits).get_matrix().diagonal().real
 
-			# Inefficient recursive function to also get the Pauli strings including 'I' whenever we measure in 'Z'
-			def pauli_helper(m, s=None):
-				if s is None:
-					s = set()
-				for i, t in enumerate(m):
-					_m = list(m).copy()
-					if t == 'Z':
-						_m[i] = 'I'
-						pauli_helper(_m, s)
-					s.add(tuple(m))
-				return s
+		return rho, sigma
 
-			sigma = np.zeros(self.dimension, dtype=np.float64)
-			rho = np.zeros((self.dimension, self.dimension), dtype=np.float64)
-			m = 0
-			# Construct measurement circuits
-			for measurement in list(product(['X', 'Y', 'Z'], repeat=self.n)):
-				if measurement.count('Y') % 2 == 1: # We don't want imaginary terms
-					continue
-				m += 1
-				circuit = self.ansatz.copy()
-				for i, t in enumerate(measurement):
-					if t == 'X': # Hadamard gate
-						self.add_gate_to_circuit(circuit, RZ(self.system_qubits[i], np.pi / 2))
-						self.add_gate_to_circuit(circuit, sqrtX(self.system_qubits[i]))
-					elif t == 'Y':
-						self.add_gate_to_circuit(circuit, sqrtX(self.system_qubits[i]))
-					self.set_parameters(circuit, self.params)
-				if self.noise_model:
-					self.add_readout_noise(circuit)
-				# Update quantum state
-				self.state.set_zero_state()
+	def sampled_tomography(self):
+		post_process_strings = {
+			'I': np.array([1, 1]),
+			'X': np.array([1, -1]),
+			'Y': np.array([1, -1]),
+			'Z': np.array([1, -1])
+		}
+		pauli = {
+			'I': np.array([[1, 0], [0, 1]]),
+			'X': np.array([[0, 1], [1, 0]]),
+			'Y': np.array([[0, -1j], [1j, 0]]),
+			'Z': np.array([[1, 0], [0, -1]])
+		}
+
+		# Inefficient recursive function to also get the Pauli strings including 'I' whenever we measure in 'Z'
+		def pauli_helper(m, s=None):
+			if s is None:
+				s = set()
+			for i, t in enumerate(m):
+				_m = list(m).copy()
+				if t == 'Z':
+					_m[i] = 'I'
+					pauli_helper(_m, s)
+				s.add(tuple(m))
+			return s
+
+		sigma = np.zeros(self.dimension, dtype=np.float64)
+		rho = np.zeros((self.dimension, self.dimension), dtype=np.float64)
+		m = 0
+		# Construct measurement circuits
+		for measurement in list(product(['X', 'Y', 'Z'], repeat=self.n)):
+			if measurement.count('Y') % 2 == 1:  # We don't want imaginary terms
+				continue
+			m += 1
+			circuit = self.ansatz.copy()
+			for i, t in enumerate(measurement):
+				if t == 'X':  # Hadamard gate
+					self.add_gate_to_circuit(circuit, RZ(self.system_qubits[i], np.pi / 2))
+					self.add_gate_to_circuit(circuit, sqrtX(self.system_qubits[i]))
+				elif t == 'Y':
+					self.add_gate_to_circuit(circuit, sqrtX(self.system_qubits[i]))
 				self.set_parameters(circuit, self.params)
-				circuit.update_quantum_state(self.state)
-				# Sample
-				samples = Counter(self.state.sampling(self.shots, self.seed)).items()
-				counts = [[self.get_bit_string(i, self.total_n), j] for i, j in samples]
-				# Compute rho and sigma
-				for shot, n in counts:
-					# rho (assuming the state is real)
-					for pauli_string in pauli_helper(measurement):
-						post_process_vector = reduce(np.kron, [post_process_strings[i] for i in pauli_string])
-						pauli_matrix = reduce(np.kron, [pauli[i] for i in pauli_string]).real
-						coef = post_process_vector[int(shot[self.n:], 2)]
-						rho += coef * pauli_matrix * n
-					# sigma (assuming the state is diagonal)
-					sigma[int(shot[:self.n], 2)] += n
-			rho /= self.shots * self.dimension
-			sigma /= self.shots * m  # might as well use the m measurements to compute with better accuracy
-		else:
+			if self.noise_model:
+				self.add_readout_noise(circuit)
+			# Update quantum state
 			self.state.set_zero_state()
-			self.set_parameters(self.ansatz, self.params)
-			self.ansatz.update_quantum_state(self.state)
-			rho = partial_trace(self.state, self.ancilla_qubits).get_matrix()
-			sigma = partial_trace(self.state, self.system_qubits).get_matrix().diagonal().real
+			self.set_parameters(circuit, self.params)
+			circuit.update_quantum_state(self.state)
+			# Sample
+			samples = Counter(self.state.sampling(self.shots, self.seed)).items()
+			counts = [[self.get_bit_string(i, self.total_n), j] for i, j in samples]
+			# Compute rho and sigma
+			for shot, n in counts:
+				# rho (assuming the state is real)
+				for pauli_string in pauli_helper(measurement):
+					post_process_vector = reduce(np.kron, [post_process_strings[i] for i in pauli_string])
+					pauli_matrix = reduce(np.kron, [pauli[i] for i in pauli_string]).real
+					coef = post_process_vector[int(shot[self.n:], 2)]
+					rho += coef * pauli_matrix * n
+				# sigma (assuming the state is diagonal)
+				sigma[int(shot[:self.n], 2)] += n
+		rho /= self.shots * self.dimension
+		sigma /= self.shots * m  # might as well use the m measurements to compute with better accuracy
 
 		return rho, sigma
 
@@ -384,10 +436,10 @@ class GibbsIsing:
 		self.nfev += self.dimension * (1 + 2 * self.num_params)
 		r = 0.5
 		shift = np.pi / (4 * r)
-		p = np.zeros(self.dimension) # p evaluated at x
-		p_gradient = np.zeros((self.dimension, self.num_ancilla_params)) # gradient of p at x
-		U = np.zeros(self.dimension) # expectation of U at x
-		U_gradient = np.zeros((self.dimension, self.num_system_params)) # gradient of the expectation of U at x
+		p = np.zeros(self.dimension)  # p evaluated at x
+		p_gradient = np.zeros((self.dimension, self.num_ancilla_params))  # gradient of p at x
+		U = np.zeros(self.dimension)  # expectation of U at x
+		U_gradient = np.zeros((self.dimension, self.num_system_params))  # gradient of the expectation of U at x
 		# Evaluate ancilla unitary stuff
 		for i in range(self.dimension):
 			bit_list = self.get_bit_list(i, self.n)
@@ -585,20 +637,3 @@ class GibbsIsing:
 		                          range(self.num_system_params)]
 
 		return np.concatenate((ancilla_params_gradient, system_params_gradient))
-
-
-class GibbsResult:
-	def __init__(self, gibbs):
-		self.result = gibbs.result
-		self.ancilla_unitary_params = gibbs.ancilla_params()
-		self.system_unitary_params = gibbs.system_params()
-		self.optimal_parameters = gibbs.params
-		self.ancilla_unitary = gibbs.ancilla_unitary_matrix()
-		self.system_unitary = gibbs.system_unitary_matrix()
-		self.cost = gibbs.cost
-		self.energy = gibbs.energy
-		self.entropy = gibbs.entropy
-		self.gibbs_state = gibbs.rho
-		self.eigenvalues = gibbs.eigenvalues
-		self.eigenvectors = gibbs.eigenvectors
-		self.hamiltonian_eigenvalues = gibbs.hamiltonian_eigenvalues

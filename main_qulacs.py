@@ -1,6 +1,5 @@
-import numpy as np
-from gibbs_ising_qulacs import GibbsIsing
 from gibbs_functions import ExactResult, fidelity, trace_distance, relative_entropy
+from gibbs_ising_qulacs import GibbsIsing
 
 
 def main():
@@ -9,11 +8,11 @@ def main():
 	J = 1
 	h = 0.5
 	beta = 1
-	shots = 1024  # Number of shots to sample
-	seed = 0
-	noise_model = False
+	shots = 128  # Number of shots to sample
+	seed = None
+	noise_model = True
 	# Define minimizer kwargs
-	min_kwargs = dict(learning_rate=0.1)
+	min_kwargs = dict()
 	# Run VQA
 	gibbs = GibbsIsing(n, J, h, beta)
 	calculated_result = gibbs.run(min_kwargs, shots=shots, seed=seed, noise_model=noise_model)
@@ -23,7 +22,11 @@ def main():
 	f = fidelity(exact_result.gibbs_state, calculated_result.gibbs_state)
 	td = trace_distance(exact_result.gibbs_state, calculated_result.gibbs_state)
 	re = relative_entropy(exact_result.gibbs_state, calculated_result.gibbs_state)
+	nf = fidelity(exact_result.gibbs_state, calculated_result.noiseless_gibbs_state)
+	ntd = trace_distance(exact_result.gibbs_state, calculated_result.noiseless_gibbs_state)
+	nre = relative_entropy(exact_result.gibbs_state, calculated_result.noiseless_gibbs_state)
 	# Print results
+	print()
 	print(calculated_result.result)
 	print()
 	print('Exact Gibbs state: ')
@@ -50,6 +53,10 @@ def main():
 	print(f'Fidelity: {f}')
 	print(f'Trace Distance: {td}')
 	print(f'Relative Entropy: {re}')
+	print()
+	print(f'Noiseless Fidelity: {nf}')
+	print(f'Noiseless Trace Distance: {ntd}')
+	print(f'Noiseless Relative Entropy: {nre}')
 
 
 if __name__ == '__main__':
