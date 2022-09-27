@@ -11,19 +11,15 @@ one_qubit_t2 = 0.5 * (1 - np.exp(-gate_time_one_qubit / t2))
 one_qubit_depo = 1e-4
 two_qubit_t1 = 1 - np.exp(-gate_time_two_qubit / t1)
 two_qubit_t2 = 0.5 * (1 - np.exp(-gate_time_two_qubit / t2))
-two_qubit_depo = 1e-2
+two_qubit_depo = 1e-3
 readout = 1e-3
 
-print(one_qubit_t1)
-print(one_qubit_t2)
-print(one_qubit_depo)
-print(two_qubit_t1)
-print(two_qubit_t2)
-print(two_qubit_depo)
-print(readout)
-
-noise_model = dict(one_qubit_t1=one_qubit_t1, one_qubit_t2=one_qubit_t2, one_qubit_depo=one_qubit_depo,
-                   two_qubit_t1=two_qubit_t1, two_qubit_t2=two_qubit_t2, two_qubit_depo=two_qubit_depo,
+noise_model = dict(one_qubit_t1=one_qubit_t1,
+                   one_qubit_t2=one_qubit_t2,
+                   one_qubit_depo=one_qubit_depo,
+                   two_qubit_t1=two_qubit_t1,
+                   two_qubit_t2=two_qubit_t2,
+                   two_qubit_depo=two_qubit_depo,
                    readout=readout)
 
 with open('noise_model.json', 'w') as f:
