@@ -1,14 +1,13 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from main_qulacs import xx_hamiltonian, ExactResult
-from gibbs_ising_qulacs import xx_Gibbs
-from qulacs import QuantumState
-from qulacs.state import inner_product
 from matplotlib import rc
+from qulacs.state import inner_product
+
+from gibbs_functions import *
+from qulacs import QuantumState
+from qulacs.gibbs_ising_qulacs import GibbsIsing
 
 rc('font', **{'family': 'Times New Roman', 'sans-serif': ['Times New Roman'], 'size': 20})
 rc('text', usetex=True)
-
 
 # Parameters
 n = 2  # number of qubits
@@ -17,36 +16,34 @@ h = 0.5
 h_quenched = 2 * h
 beta = 1
 shots = None  # Number of shots to sample
-# Define Hamiltonian
-H1 = xx_hamiltonian(n, J, h)
 # Define minimizer kwargs
 min_kwargs = dict()
 # Run VQA
-gibbs1 = xx_Gibbs(n)
-result1 = gibbs1.run(H1, beta, min_kwargs, shots=shots)
-U1 = gibbs1.system_unitary()
+gibbs1 = GibbsIsing(n, J, h, beta)
+result1 = gibbs1.run(min_kwargs=min_kwargs, shots=shots)
+U1 = result1.system_unitary
 for i, param in enumerate(result1.system_params):
 	U1.set_parameter(i, param)
 e_n = result1.hamiltonian_eigenvalues
 p_n = result1.eigenvalues
 
+H1 = ising_hamiltonian(n, J, h)
 exact_result1 = ExactResult(H1, beta)
 ex_e_n = exact_result1.hamiltonian_eigenvalues
 ex_p_n = exact_result1.eigenvalues
 eigvecs_n = exact_result1.eigenvectors
 
-# Define Hamiltonian
-H2 = xx_hamiltonian(n, J, h_quenched)
 # Define minimizer kwargs
 min_kwargs = dict()
 # Run VQA
-gibbs2 = xx_Gibbs(n)
-result2 = gibbs2.run(H2, beta, min_kwargs, shots=shots)
-U2 = gibbs2.system_unitary()
+gibbs2 = GibbsIsing(n, J, h_quenched, beta)
+result2 = gibbs2.run(min_kwargs=min_kwargs, shots=shots)
+U2 = result2.system_unitary
 for i, param in enumerate(result2.system_params):
 	U2.set_parameter(i, param)
 e_m = result2.hamiltonian_eigenvalues
 
+H2 = ising_hamiltonian(n, J, h_quenched)
 exact_result2 = ExactResult(H2, beta)
 ex_e_m = exact_result2.hamiltonian_eigenvalues
 eigvecs_m = exact_result2.eigenvectors

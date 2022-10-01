@@ -3,38 +3,24 @@ from collections import Counter
 from functools import reduce
 from itertools import product
 
+from qiskit.algorithms.optimizers import POWELL
 from qiskit.utils import algorithm_globals
 from qulacs import ParametricQuantumCircuit, QuantumState
 from qulacs.gate import (sqrtX, RZ, ParametricRZ, CNOT, AmplitudeDampingNoise, DephasingNoise, DepolarizingNoise,
                          BitFlipNoise, TwoQubitDepolarizingNoise)
 from qulacs.observable import create_observable_from_openfermion_text
 from qulacs.state import partial_trace
-from scipy.optimize import *
 from scipy.special import xlogy
 from sklearn.gaussian_process.kernels import *
-from skopt import *
 
-from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms
+from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms, GibbsResult
 
 
-class GibbsResult(OptimizeResult):
-	def __init__(self, gibbs) -> OptimizeResult:
-		super().__init__(dict(result=gibbs.result,
-		                      ancilla_unitary_params=gibbs.ancilla_params(),
-		                      system_unitary_params=gibbs.system_params(),
-		                      optimal_parameters=gibbs.params,
-		                      ancilla_unitary=gibbs.ancilla_unitary_matrix(),
-		                      system_unitary=gibbs.system_unitary_matrix(),
-		                      cost=gibbs.cost,
-		                      energy=gibbs.energy,
-		                      entropy=gibbs.entropy,
-		                      gibbs_state=gibbs.rho,
-		                      noiseless_gibbs_state=gibbs.noiseless_rho,
-		                      eigenvalues=gibbs.eigenvalues,
-		                      noiseless_eigenvalues=gibbs.noiseless_eigenvalues,
-		                      eigenvectors=gibbs.eigenvectors,
-		                      hamiltonian_eigenvalues=gibbs.hamiltonian_eigenvalues,
-		                      noiseless_hamiltonian_eigenvalues=gibbs.noiseless_hamiltonian_eigenvalues))
+def powerseries(eta=0.01, power=2, offset=0):
+	n = 1
+	while True:
+		yield eta / ((n + offset) ** power)
+		n += 1
 
 
 class GibbsIsing:
@@ -114,7 +100,7 @@ class GibbsIsing:
 			between 0 and 2 ** 32 - 1
 		:param noise_model: whether to use noise_model.json as a noise model. Can be customized by
 			generate_noise_model_qulacs.py.
-		:return: GibbsResult object containing
+		:return: GibbsResult object containing results of the simulation
 		"""
 		self.seed = seed if seed is not None else np.random.randint(2 ** 32)
 		np.random.seed(self.seed)
@@ -148,10 +134,9 @@ class GibbsIsing:
 		self.iter = 0
 		self.nfev = 0
 		print('| iter | nfev | Cost | Energy | Entropy |')
-		# self.result = SPSA(**self.min_kwargs).minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds,
-		#                                                jac=self.gradient_fun)
-		self.result = gp_minimize(func=self.cost_fun, dimensions=self.bounds, n_calls=100, n_initial_points=20,
-		                          acq_func='PI', xi=0.01, initial_point_generator='lhs', **self.min_kwargs)
+		self.result = POWELL(**self.min_kwargs).minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds,
+		                                                 jac=self.gradient_fun)
+		# self.result = gp_minimize(func=self.cost_fun, dimensions=self.bounds, **self.min_kwargs)
 		# Update
 		self.params = self.result.x
 		# noinspection PyArgumentList
@@ -217,9 +202,8 @@ class GibbsIsing:
 	def add_qiskit_ising_gate(self, qc, q1, q2):  # U = R_yx.R_xy
 		self.add_gate_to_circuit(qc, sqrtX(q1))
 		self.add_gate_to_circuit(qc, sqrtX(q2))
-		self.add_gate_to_circuit(qc, RZ(q1, np.pi / 2))
+		self.add_gate_to_circuit(qc, RZ(q1, 3 * np.pi / 2))
 		self.add_gate_to_circuit(qc, CNOT(q1, q2))
-		self.add_gate_to_circuit(qc, RZ(q1, np.pi))
 		self.add_gate_to_circuit(qc, ParametricRZ(q2, 0))
 		self.add_gate_to_circuit(qc, sqrtX(q1))
 		self.add_gate_to_circuit(qc, sqrtX(q2))
@@ -252,7 +236,7 @@ class GibbsIsing:
 		self.system_ansatz = self.system_circuit()
 		self.system_circuit(self.ansatz, self.system_qubits)
 
-		# circuit_drawer(self.ansatz, 'mpl')
+	# circuit_drawer(self.ansatz, output_method='mpl')
 
 	def ancilla_circuit(self, qc=None, qubits=None):
 		if qc is None:
@@ -378,12 +362,8 @@ class GibbsIsing:
 
 		sigma = np.zeros(self.dimension, dtype=np.float64)
 		rho = np.zeros((self.dimension, self.dimension), dtype=np.float64)
-		m = 0
 		# Construct measurement circuits
 		for measurement in list(product(['X', 'Y', 'Z'], repeat=self.n)):
-			if measurement.count('Y') % 2 == 1:  # We don't want imaginary terms
-				continue
-			m += 1
 			circuit = self.ansatz.copy()
 			for i, t in enumerate(measurement):
 				if t == 'X':  # Hadamard gate
@@ -412,7 +392,7 @@ class GibbsIsing:
 				# sigma (assuming the state is diagonal)
 				sigma[int(shot[:self.n], 2)] += n
 		rho /= self.shots * self.dimension
-		sigma /= self.shots * m  # might as well use the m measurements to compute with better accuracy
+		sigma /= self.shots * 3 ** self.n  # might as well use the 3^n measurements to compute with better accuracy
 
 		return rho, sigma
 

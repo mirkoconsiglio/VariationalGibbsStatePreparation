@@ -1,11 +1,11 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import rc
-from os import listdir
-from os.path import isdir
-from main_qulacs import ExactResult
 import pickle
 import re
+from os import listdir
+from os.path import isdir
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import rc
 
 rc('font', **{'family': 'Times New Roman', 'sans-serif': ['Times New Roman'], 'size': 20})
 rc('text', usetex=True)

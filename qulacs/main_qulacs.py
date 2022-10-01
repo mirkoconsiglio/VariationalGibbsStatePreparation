@@ -8,7 +8,7 @@ def main():
 	J = 1
 	h = 0.5
 	beta = 1
-	shots = 128  # Number of shots to sample
+	shots = 1024  # Number of shots to sample
 	seed = None
 	noise_model = True
 	# Define minimizer kwargs

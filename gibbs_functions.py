@@ -49,7 +49,7 @@ def exact_gibbs_state(hamiltonian: list[list[complex]], beta: float) -> list[lis
 	return rho / rho.diagonal().sum()
 
 
-def ising_hamiltonian(n: int, J: int = 1., h: int = 0.5) -> list[list[complex]]:
+def ising_hamiltonian(n: int, J: float = 1., h: float = 0.5) -> list[list[complex]]:
 	hamiltonian = QubitOperator()
 	for i in range(n):
 		# Interaction terms
@@ -65,7 +65,7 @@ def ising_hamiltonian(n: int, J: int = 1., h: int = 0.5) -> list[list[complex]]:
 	return hamiltonian
 
 
-def ising_hamiltonian_commuting_terms(n: int, J: int = 1., h: int = 0.5) -> dict:
+def ising_hamiltonian_commuting_terms(n: int, J: float = 1., h: float = 0.5) -> dict:
 	terms = dict()
 	if J != 0:
 		terms.update(ising_even_odd=[-J, [[i, i + 1] for i in range(0, n - 1, 2)]])
@@ -97,3 +97,23 @@ class ExactResult(OptimizeResult):
 		                      cost=cost,
 		                      eigenvalues=eigenvalues,
 		                      hamiltonian_eigenvalues=hamiltonian_eigenvalues))
+
+
+class GibbsResult(OptimizeResult):
+	def __init__(self, gibbs) -> OptimizeResult:
+		super().__init__(dict(result=gibbs.result,
+		                      ancilla_unitary_params=gibbs.ancilla_params(),
+		                      system_unitary_params=gibbs.system_params(),
+		                      optimal_parameters=gibbs.params,
+		                      ancilla_unitary=gibbs.ancilla_unitary_matrix(),
+		                      system_unitary=gibbs.system_unitary_matrix(),
+		                      cost=gibbs.cost,
+		                      energy=gibbs.energy,
+		                      entropy=gibbs.entropy,
+		                      gibbs_state=gibbs.rho,
+		                      noiseless_gibbs_state=gibbs.noiseless_rho,
+		                      eigenvalues=gibbs.eigenvalues,
+		                      noiseless_eigenvalues=gibbs.noiseless_eigenvalues,
+		                      eigenvectors=gibbs.eigenvectors,
+		                      hamiltonian_eigenvalues=gibbs.hamiltonian_eigenvalues,
+		                      noiseless_hamiltonian_eigenvalues=gibbs.noiseless_hamiltonian_eigenvalues))

@@ -1,12 +1,14 @@
-import numpy as np
-from itertools import product
 from functools import reduce
-from qiskit.utils import algorithm_globals
-from qiskit.algorithms.optimizers import SPSA
+from itertools import product
+
+import numpy as np
 from braket.circuits import Circuit, FreeParameter
 from braket.devices import LocalSimulator
 from braket.jobs.metrics import log_metric
+from qiskit.algorithms.optimizers import SPSA
+from qiskit.utils import algorithm_globals
 from scipy.special import xlogy
+
 from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms
 
 
@@ -71,9 +73,7 @@ class GibbsIsing:
 		self.min_kwargs.update(callback=self.callback)
 		self.shots = shots
 		self.cost_fun = self.sampled_cost_fun
-		self.commuting_terms = ising_hamiltonian_commuting_terms(
-			self.n, self.J, self.h, self.system_qubits
-		)
+		self.commuting_terms = ising_hamiltonian_commuting_terms(self.n, self.J, self.h)
 		self.pauli_circuits = self.generate_measurement_circuits()
 		self.total_shots = self.shots * len(self.commuting_terms)
 

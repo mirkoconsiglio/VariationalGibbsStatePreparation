@@ -1,8 +1,11 @@
 import json
-from gibbs_ising_braket import GibbsIsing
-from gibbs_functions import ExactResult, fidelity, trace_distance, relative_entropy
+
 from braket.circuits.noise_model import NoiseModel
 from braket.devices import LocalSimulator
+
+from gibbs_functions import ExactResult, fidelity, trace_distance, relative_entropy
+from gibbs_ising_braket import GibbsIsing
+
 
 def main():
 	# Parameters
@@ -15,7 +18,7 @@ def main():
 	use_noise_model = True
 	# Load noise_model
 	if use_noise_model:
-		with open('../noise_model.json', 'r') as f:
+		with open('../qulacs/noise_model.json', 'r') as f:
 			data = json.load(f)
 			noise_model = NoiseModel().from_dict(data)
 	else:

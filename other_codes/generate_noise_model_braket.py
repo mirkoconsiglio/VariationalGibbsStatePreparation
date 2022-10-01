@@ -1,5 +1,6 @@
-import numpy as np
 import json
+
+import numpy as np
 from braket.circuits.noise_model import NoiseModel, GateCriteria, ObservableCriteria
 from braket.circuits.noises import AmplitudeDamping, PhaseDamping, Depolarizing, BitFlip, \
 	TwoQubitDepolarizing, TwoQubitDephasing
@@ -35,5 +36,5 @@ for i in range(n):
 # Read out errors
 noise_model.add_noise(BitFlip(avg_readout), ObservableCriteria())
 # Save noise model
-with open('../noise_model.json', 'w') as f:
+with open('../qulacs/noise_model.json', 'w') as f:
 	json.dump(noise_model.to_dict(), f)
