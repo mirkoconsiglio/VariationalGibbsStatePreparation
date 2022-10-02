@@ -94,7 +94,7 @@ if __name__ == '__main__':
 	meta["spec"]["return_values"] = {
 		"$schema": "https://json-schema.org/draft/2019-09/schema",
 		"description": "Final result containing list of parameters, cost, energy, entropy, eigenvalues, "
-		               "iterations and function evaluations.",
+		               "iterations and function evaluations, among others.",
 		"type": "array",
 	}
 	# Interim results
