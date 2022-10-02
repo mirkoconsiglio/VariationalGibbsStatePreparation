@@ -40,6 +40,11 @@ def relative_entropy(rho: list[list[complex]], sigma: list[list[complex]]) -> fl
 	return (rho @ (logm(rho) - logm(sigma))).diagonal().sum().real
 
 
+def purity(rho: list[list[complex]]) -> float:
+	rho = np.asarray(rho)
+	return (rho @ rho).diagonal().sum().real
+
+
 def von_neumann_entropy(rho: list[list[complex]]) -> float:
 	return -np.sum([0 if i <= 0 else i * np.log(i) for i in np.linalg.eigh(rho)[0]])
 
@@ -59,8 +64,6 @@ def ising_hamiltonian(n: int, J: float = 1., h: float = 0.5) -> list[list[comple
 			hamiltonian += QubitOperator(f'X0 X{n - 1}', -J)
 		# Magnetic terms
 		hamiltonian += QubitOperator(f'Z{i}', -h)
-
-	print(hamiltonian)
 
 	return hamiltonian
 
