@@ -1,7 +1,10 @@
 import numpy as np
-from qiskit import QuantumCircuit, transpile, Aer
+from mthree import M3Mitigation
+from mthree.utils import final_measurement_mapping
+from qiskit import QuantumCircuit, transpile, IBMQ
 from qiskit.algorithms.optimizers import *
 from qiskit.circuit import Parameter
+from qiskit.providers.aer import AerSimulator
 from qiskit.quantum_info import Statevector, partial_trace
 from qiskit_experiments.library import StateTomography
 from qiskit_ibm_runtime.program import UserMessenger
@@ -9,8 +12,9 @@ from scipy.special import xlogy
 
 
 class GibbsIsing:
-	def __init__(self, n=2, J=1., h=0.5, beta=1., ancilla_reps=1, system_reps=1, optimizer=None, backend=None,
-	             user_messenger=UserMessenger(), skip_transpilation=False, use_measurement_mitigation=False):
+	def __init__(self, n=2, J=1., h=0.5, beta=1., ancilla_reps=1, system_reps=1, optimizer=None, shots=1024,
+	             backend=None, user_messenger=None, skip_transpilation=False,
+	             use_measurement_mitigation=False):
 		# Hamiltonian and cost function setup
 		self.n = n
 		self.J = J
@@ -40,13 +44,19 @@ class GibbsIsing:
 		self.optimizer.callback = self.callback
 		self.optimizer.set_options(callback=self.callback)
 		self.bounds = [(0, 2 * np.pi)] * len(self.ansatz.parameters)
+		# Shots
+		self.shots = shots
+		self.total_shots = self.shots * self.num_pauli_circuits
 		# Setup backend
 		if not backend:
-			self.backend = Aer.get_backend("qasm_simulator")
+			self.backend = AerSimulator()
 		else:
 			self.backend = backend
 		# User messenger
-		self.user_messenger = user_messenger
+		if not user_messenger:
+			self.user_messenger = UserMessenger()
+		else:
+			self.user_messenger = user_messenger
 		# Transpilation
 		if not self.skip_transpilation:
 			if not self.backend.configuration().simulator:
@@ -55,9 +65,10 @@ class GibbsIsing:
 				trans_dict = dict()
 			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, optimization_level=3, **trans_dict)
 		# Error mitigation
-		if use_measurement_mitigation:
-			# TODO: measurement mitigation
-			pass
+		if self.use_measurement_mitigation:
+			self.mappings = final_measurement_mapping(self.pauli_circuits)
+			self.mit = M3Mitigation(self.backend)
+			self.mit.cals_from_system(self.mappings, shots=self.shots)
 		# Logging
 		self.iter = None
 		self.nfev = None
@@ -71,8 +82,6 @@ class GibbsIsing:
 		self.service = None
 		self.sampler = None
 		self.x0 = None
-		self.shots = None
-		self.total_shots = None
 		self.rho = None
 		self.sigma = None
 		self.noiseless_rho = None
@@ -81,15 +90,13 @@ class GibbsIsing:
 		self.hamiltonian_eigenvalues = None
 		self.noiseless_hamiltonian_eigenvalues = None
 
-	def run(self, x0=None, shots=1024):
+	def run(self, x0=None):
 		self.iter = 0
 		self.nfev = 0
 		if x0 is None:
 			self.x0 = np.random.uniform(0, 2 * np.pi, self.ansatz.num_parameters)
 		else:
 			self.x0 = x0
-		self.shots = shots
-		self.total_shots = self.shots * self.num_pauli_circuits
 		# Start optimization
 		print('| iter | nfev | Cost | Energy | Entropy |')
 		result = self.optimizer.minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds)
@@ -135,11 +142,14 @@ class GibbsIsing:
 		bound_circs = [circ.bind_parameters(self.params) for circ in self.pauli_circuits]
 		# Submit the job and get the resultant counts back
 		results = self.backend.run(bound_circs, shots=self.shots).result().get_counts()
+		if self.use_measurement_mitigation:
+			results = [result.items() for result in self.mit.apply_correction(results, self.mappings)]
+		else:
+			results = [[(key, value / self.shots) for key, value in result.items()] for result in results]
 		# Post-process results
 		energy = 0
 		p = np.zeros(self.dimension)
-		for result, (label, (coef, qubits)) in zip(results, self.commuting_terms.items()):
-			counts = result.items()
+		for counts, (label, (coef, qubits)) in zip(results, self.commuting_terms.items()):
 			# Evaluate energy and entropy
 			for shot, n in counts:
 				# Note that Qiskit returns in little-endian, and we read big-endian,
@@ -154,8 +164,8 @@ class GibbsIsing:
 				# Entropy
 				self.probabilities(p, shot[:self.n], n)
 
-		self.energy = energy / self.shots
-		self.eigenvalues = p / self.total_shots
+		self.energy = energy
+		self.eigenvalues = p / self.num_pauli_circuits
 		self.entropy = self.entropy_fun(self.eigenvalues)
 		self.cost = self.energy - self.inverse_beta * self.entropy
 
@@ -311,28 +321,42 @@ class GibbsIsing:
 
 # The entrypoint for our qiskit_runtime Program
 def main(
-		backend,
-		user_messenger,
+		backend=None,
+		user_messenger=None,
 		n=2,
 		J=1.,
 		h=0.5,
-		beta=1.,
+		beta=None,
 		ancilla_reps=1,
 		system_reps=1,
 		x0=None,
 		optimizer=None,
 		shots=1024,
-		use_measurement_mitigation=False,
-		skip_transpilation=False
+		use_measurement_mitigation=True,
+		skip_transpilation=False,
+		adiabatic_assistance=False
 ):
-	gibbs = GibbsIsing(n, J, h, beta, ancilla_reps, system_reps, optimizer, backend, user_messenger,
-	                   use_measurement_mitigation, skip_transpilation)
-	result = gibbs.run(x0, shots)
+	if beta is None:
+		beta = [1e-8, 0.2, 0.5, 0.8, 1., 1.2, 2., 5.]
+	elif not isinstance(beta, list):
+		beta = [beta]
+	results = []
+	for _beta in beta:
+		gibbs = GibbsIsing(n, J, h, _beta, ancilla_reps, system_reps, optimizer, shots, backend, user_messenger,
+		                   skip_transpilation, use_measurement_mitigation)
+		result = gibbs.run(x0)
+		results.append(result)
+		# Start optimization from parameters of previous beta
+		if adiabatic_assistance:
+			x0 = result['params']
 
-	return result
+	return results
 
 
 if __name__ == '__main__':
-	gibbs = GibbsIsing()
-	result = gibbs.run()
-	print(result)
+	from job_results import print_results
+
+	backend = AerSimulator.from_backend(IBMQ.load_account().get_backend('ibm_oslo'))
+	results = main(backend=backend, beta=100., adiabatic_assistance=True)
+	for result in results:
+		print_results(result)
