@@ -1,17 +1,23 @@
 from qiskit_ibm_runtime import QiskitRuntimeService
 
-service = QiskitRuntimeService()
-program_id = 'vgsp-ising-xVBvWpWqyV'  # program id once it is uploaded
-backends = service.backends(simulator=False, min_num_qubits=4)
-inputs = dict(adiabatic_assistance=True)
 
-backend_name = "ibmq_qasm_simulator"
-options = dict(backend_name=backend_name)  # Choose backend (required)
-# Run job
-job = service.run(program_id, options=options, inputs=inputs)
-print(f"Job sent to {backend_name} with job ID: {job.job_id}")
+def callback(job_id, interim_result):
+	print(interim_result)
 
-# TODO: add streaming of results with callback function
+
+if __name__ == '__main__':
+	service = QiskitRuntimeService()
+	program_id = 'vgsp-ising-xVBvWpWqyV'  # program id once it is uploaded
+	backends = service.backends(simulator=False, min_num_qubits=4)
+	inputs = dict()
+
+	backend_name = "ibmq_qasm_simulator"
+	options = dict(backend_name=backend_name)  # Choose backend (required)
+	# Run job
+	job = service.run(program_id, options=options, inputs=inputs)
+	print(f"Job sent to {backend_name} with job ID: {job.job_id}")
+
+	job.stream_results(callback)
 
 # for backend in backends:
 # 	try:
