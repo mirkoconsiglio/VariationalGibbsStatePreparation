@@ -107,6 +107,9 @@ if __name__ == '__main__':
 
 	service = QiskitRuntimeService()
 
-	program_id = service.upload_program(data="vgsp_ising_program.py", metadata=meta)
-	print("Program uploaded")
-	print(f"Program ID: {program_id}")
+	service.update_program(program_id='vgsp-ising-xVBvWpWqyV', data='vgsp_ising_program.py')
+	print("Program updated")
+
+# program_id = service.upload_program(data='vgsp_ising_program.py', metadata=meta)
+# print("Program uploaded")
+# print(f"Program ID: {program_id}")
