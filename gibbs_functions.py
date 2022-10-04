@@ -84,39 +84,73 @@ def ising_hamiltonian_commuting_terms(n: int, J: float = 1., h: float = 0.5) -> 
 	return terms
 
 
+def _exact_result(hamiltonian, beta):
+	hamiltonian_matrix = qubit_operator_sparse(hamiltonian).todense()
+	gibbs_state = exact_gibbs_state(hamiltonian_matrix, beta)
+	energy = (gibbs_state @ hamiltonian_matrix).diagonal().sum().real
+	entropy = von_neumann_entropy(gibbs_state)
+	cost = energy - entropy / beta
+	eigenvalues = np.linalg.eigh(gibbs_state)[0]
+	hamiltonian_eigenvalues = np.linalg.eigh(hamiltonian_matrix)[0]
+	return dict(
+		hamiltonian_matrix=hamiltonian_matrix,
+		gibbs_state=gibbs_state,
+		energy=energy,
+		entropy=entropy,
+		cost=cost,
+		eigenvalues=eigenvalues,
+		hamiltonian_eigenvalues=hamiltonian_eigenvalues
+	)
+
+
 class ExactResult(OptimizeResult):
 	def __init__(self, hamiltonian, beta) -> OptimizeResult:
-		hamiltonian_matrix = qubit_operator_sparse(hamiltonian).todense()
-		gibbs_state = exact_gibbs_state(hamiltonian_matrix, beta)
-		energy = (gibbs_state @ hamiltonian_matrix).diagonal().sum().real
-		entropy = von_neumann_entropy(gibbs_state)
-		cost = energy - entropy / beta
-		eigenvalues = np.linalg.eigh(gibbs_state)[0]
-		hamiltonian_eigenvalues = np.linalg.eigh(hamiltonian_matrix)[0]
-		super().__init__(dict(hamiltonian_matrix=hamiltonian_matrix,
-		                      gibbs_state=gibbs_state,
-		                      energy=energy,
-		                      entropy=entropy,
-		                      cost=cost,
-		                      eigenvalues=eigenvalues,
-		                      hamiltonian_eigenvalues=hamiltonian_eigenvalues))
+		super().__init__(_exact_result(hamiltonian, beta))
+
+
+def _gibbs_result(gibbs):
+	if isinstance(gibbs, dict):
+		return dict(
+			# ancilla_unitary_params=gibbs.ancilla_params(),
+			# system_unitary_params=gibbs.system_params(),
+			params=gibbs['params'],
+			# ancilla_unitary=gibbs.ancilla_unitary_matrix(),
+			# system_unitary=gibbs.system_unitary_matrix(),
+			cost=gibbs['cost'],
+			energy=gibbs['energy'],
+			entropy=gibbs['entropy'],
+			rho=gibbs['rho'],
+			noiseless_rho=gibbs['noiseless_rho'],
+			sigma=gibbs['sigma'],
+			noiseless_sigma=gibbs['noiseless_sigma'],
+			eigenvalues=gibbs['eigenvalues'],
+			noiseless_eigenvalues=gibbs['noiseless_eigenvalues'],
+			# eigenvectors=gibbs.eigenvectors,
+			hamiltonian_eigenvalues=gibbs['hamiltonian_eigenvalues'],
+			noiseless_hamiltonian_eigenvalues=gibbs['noiseless_hamiltonian_eigenvalues']
+		)
+	return dict(
+		result=gibbs.result,
+		ancilla_unitary_params=gibbs.ancilla_params(),
+		system_unitary_params=gibbs.system_params(),
+		params=gibbs.params,
+		ancilla_unitary=gibbs.ancilla_unitary_matrix(),
+		system_unitary=gibbs.system_unitary_matrix(),
+		cost=gibbs.cost,
+		energy=gibbs.energy,
+		entropy=gibbs.entropy,
+		rho=gibbs.rho,
+		noiseless_rho=gibbs.noiseless_rho,
+		sigma=gibbs.sigma,
+		noiseless_sigma=gibbs.noiseless_sigma,
+		eigenvalues=gibbs.eigenvalues,
+		noiseless_eigenvalues=gibbs.noiseless_eigenvalues,
+		eigenvectors=gibbs.eigenvectors,
+		hamiltonian_eigenvalues=gibbs.hamiltonian_eigenvalues,
+		noiseless_hamiltonian_eigenvalues=gibbs.noiseless_hamiltonian_eigenvalues
+	)
 
 
 class GibbsResult(OptimizeResult):
 	def __init__(self, gibbs) -> OptimizeResult:
-		super().__init__(dict(result=gibbs.result,
-		                      ancilla_unitary_params=gibbs.ancilla_params(),
-		                      system_unitary_params=gibbs.system_params(),
-		                      optimal_parameters=gibbs.params,
-		                      ancilla_unitary=gibbs.ancilla_unitary_matrix(),
-		                      system_unitary=gibbs.system_unitary_matrix(),
-		                      cost=gibbs.cost,
-		                      energy=gibbs.energy,
-		                      entropy=gibbs.entropy,
-		                      gibbs_state=gibbs.rho,
-		                      noiseless_gibbs_state=gibbs.noiseless_rho,
-		                      eigenvalues=gibbs.eigenvalues,
-		                      noiseless_eigenvalues=gibbs.noiseless_eigenvalues,
-		                      eigenvectors=gibbs.eigenvectors,
-		                      hamiltonian_eigenvalues=gibbs.hamiltonian_eigenvalues,
-		                      noiseless_hamiltonian_eigenvalues=gibbs.noiseless_hamiltonian_eigenvalues))
+		super().__init__(_gibbs_result(gibbs))
