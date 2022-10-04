@@ -22,7 +22,7 @@ def print_results(results, save=False, backend_name=None, job_id=None, directory
 	if not isinstance(results, list):
 		results = [results]
 	if save:
-		os.makedirs(f'{directory}/{backend_name}', exist_ok=True)
+		os.makedirs(f'{directory}/{backend_name}/{job_id}', exist_ok=True)
 	for i, result in enumerate(results):
 		n = result['n']
 		J = result['J']
@@ -108,7 +108,7 @@ def print_results(results, save=False, backend_name=None, job_id=None, directory
 				)
 			)
 
-			with open(f'{directory}/{backend_name}/{job_id}_{i}.json', 'w') as f:
+			with open(f'{directory}/{backend_name}/{job_id}/{i}.json', 'w') as f:
 				json.dump(data, f, indent=4, cls=ResultsEncoder)
 
 
@@ -119,7 +119,7 @@ def decode_interim_results(data):
 if __name__ == '__main__':
 	service = QiskitRuntimeService()
 	# Put job ID here after it is finished to retrieve it
-	job_id = 'ccu1k4sh1rm1j15ggbvg'
+	job_id = 'ccu3tbtobjier7iv8frg'
 	job = service.job(job_id)
 	backend_name = job.backend.name
 	# Get job results
@@ -129,5 +129,6 @@ if __name__ == '__main__':
 		results = dict()
 		warnings.warn("Results could not be retrieved, might be an error.")
 	interim_results = decode_interim_results(job.interim_results())
+	# results = [interim_results[i] for i in range(101, len(interim_results), 101)]
 	# Print results
 	print_results(results, save=True, backend_name=backend_name, job_id=job_id, directory='jobs')
