@@ -1,7 +1,7 @@
 import numpy as np
 from mthree import M3Mitigation
 from mthree.utils import final_measurement_mapping
-from qiskit import QuantumCircuit, transpile, IBMQ
+from qiskit import QuantumCircuit, transpile
 from qiskit.algorithms.optimizers import *
 from qiskit.circuit import Parameter
 from qiskit.providers.aer import AerSimulator
@@ -12,9 +12,21 @@ from scipy.special import xlogy
 
 
 class GibbsIsing:
-	def __init__(self, n=2, J=1., h=0.5, beta=1., ancilla_reps=1, system_reps=1, optimizer=None, shots=1024,
-	             backend=None, user_messenger=None, skip_transpilation=False,
-	             use_measurement_mitigation=False):
+	def __init__(
+			self,
+			n=2,
+			J=1.,
+			h=0.5,
+			beta=1.,
+			ancilla_reps=1,
+			system_reps=1,
+			optimizer=None,
+			shots=1024,
+			backend=None,
+			user_messenger=None,
+			skip_transpilation=False,
+			use_measurement_mitigation=False
+	):
 		# Hamiltonian and cost function setup
 		self.n = n
 		self.J = J
@@ -37,9 +49,11 @@ class GibbsIsing:
 		self.num_pauli_circuits = len(self.pauli_circuits)
 		# Optimizer
 		if not optimizer:
-			self.optimizer = SPSA()
+			self.optimizer = SPSA(termination_checker=self.termination_checker)
+			self.max_iter = 100
 		else:
 			self.optimizer = optimizer
+			self.max_iter = None
 		# Need both because of ScipyOptimizers
 		self.optimizer.callback = self.callback
 		self.optimizer.set_options(callback=self.callback)
@@ -59,11 +73,7 @@ class GibbsIsing:
 			self.user_messenger = user_messenger
 		# Transpilation
 		if not self.skip_transpilation:
-			if not self.backend.configuration().simulator:
-				trans_dict = dict(layout_method="sabre", routing_method="sabre")
-			else:
-				trans_dict = dict()
-			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, optimization_level=3, **trans_dict)
+			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, optimization_level=3)
 		# Error mitigation
 		if self.use_measurement_mitigation:
 			self.mappings = final_measurement_mapping(self.pauli_circuits)
@@ -100,6 +110,8 @@ class GibbsIsing:
 		# Start optimization
 		print('| iter | nfev | Cost | Energy | Entropy |')
 		result = self.optimizer.minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds)
+		if self.max_iter and result.nit != self.max_iter:
+			return None
 		# Compute cost function at the last parameters
 		self.params = result.x
 		self.cost_fun(self.params)
@@ -113,8 +125,8 @@ class GibbsIsing:
 		self.hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta * np.log(self.eigenvalues))
 		self.noiseless_hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta *
 		                                                 np.log(self.noiseless_eigenvalues))
-		# return results
-		return dict(
+		# Compile data
+		data = dict(
 			n=self.n,
 			J=self.J,
 			h=self.h,
@@ -134,14 +146,19 @@ class GibbsIsing:
 			hamiltonian_eigenvalues=self.hamiltonian_eigenvalues,
 			noiseless_hamiltonian_eigenvalues=self.noiseless_hamiltonian_eigenvalues
 		)
+		# Publish data
+		self.user_messenger.publish(data)
+		# return data
+		return data
 
 	def cost_fun(self, x):
 		self.nfev += 1
 		self.params = x
 		# Bind parameters to circuits
-		bound_circs = [circ.bind_parameters(self.params) for circ in self.pauli_circuits]
-		# Submit the job and get the resultant counts back
-		results = self.backend.run(bound_circs, shots=self.shots).result().get_counts()
+		bound_circuits = [circuit.bind_parameters(self.params) for circuit in self.pauli_circuits]
+		# Submit the job and get the result counts back
+		results = self.backend.run(bound_circuits, shots=self.shots).result().get_counts()
+		# Apply error mitigation
 		if self.use_measurement_mitigation:
 			results = [result.items() for result in self.mit.apply_correction(results, self.mappings)]
 		else:
@@ -173,6 +190,7 @@ class GibbsIsing:
 
 	@staticmethod
 	def entropy_fun(p):
+		# noinspection PyCallingNonCallable
 		return -np.sum([xlogy(i, i) for i in p])
 
 	@staticmethod
@@ -269,6 +287,7 @@ class GibbsIsing:
 		qc.sx(q1)
 		qc.rz(np.pi / 2, q2)
 
+	# noinspection PyUnusedLocal
 	def callback(self, *args, **kwargs):
 		self.iter += 1
 		print(f'| {self.iter} | {self.nfev} | {self.cost:.8f} | {self.energy:.8f} | {self.entropy:.8f} |')
@@ -282,6 +301,15 @@ class GibbsIsing:
 			eigenvalues=self.eigenvalues
 		)
 		self.user_messenger.publish(message)
+
+	# noinspection PyUnusedLocal
+	def termination_checker(self, *args, **kwargs):
+		if np.isnan(self.params).any():
+			print("NaN detected in parameters, repeating beta.")
+			return True
+		if np.isnan(self.cost):
+			print("NaN detected in cost, repeating beta.")
+			return True
 
 	@staticmethod
 	def all_z_expectation(shot, n):
@@ -342,21 +370,18 @@ def main(
 		beta = [beta]
 	results = []
 	for _beta in beta:
-		gibbs = GibbsIsing(n, J, h, _beta, ancilla_reps, system_reps, optimizer, shots, backend, user_messenger,
-		                   skip_transpilation, use_measurement_mitigation)
-		result = gibbs.run(x0)
-		results.append(result)
-		# Start optimization from parameters of previous beta
-		if adiabatic_assistance:
-			x0 = result['params']
+		success = False
+		while not success:
+			gibbs = GibbsIsing(n, J, h, _beta, ancilla_reps, system_reps, optimizer, shots, backend, user_messenger,
+			                   skip_transpilation, use_measurement_mitigation)
+			result = gibbs.run(x0)
+			if result:
+				# If we got a valid result we can continue iterating over beta, otherwise repeat loop
+				success = True
+				# Add to our results
+				results.append(result)
+				# Start optimization from parameters of previous beta
+				if adiabatic_assistance:
+					x0 = result['params']
 
 	return results
-
-
-if __name__ == '__main__':
-	from job_results import print_results
-
-	backend = AerSimulator.from_backend(IBMQ.load_account().get_backend('ibm_oslo'))
-	results = main(backend=backend, beta=100., adiabatic_assistance=True)
-	for result in results:
-		print_results(result)
