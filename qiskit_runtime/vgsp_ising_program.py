@@ -18,8 +18,8 @@ class GibbsIsing:
 			J=1.,
 			h=0.5,
 			beta=1.,
-			ancilla_reps=1,
-			system_reps=1,
+			ancilla_reps=None,
+			system_reps=None,
 			optimizer=None,
 			shots=1024,
 			backend=None,
@@ -36,8 +36,8 @@ class GibbsIsing:
 		self.dimension = 2 ** self.n
 		self.beta = beta
 		self.inverse_beta = 1 / self.beta
-		self.ancilla_reps = ancilla_reps
-		self.system_reps = system_reps
+		self.ancilla_reps = ancilla_reps if ancilla_reps else self.n - 1
+		self.system_reps = system_reps if system_reps else self.n - 1
 		self.skip_transpilation = skip_transpilation
 		self.use_measurement_mitigation = use_measurement_mitigation
 		# Ansatz
@@ -50,7 +50,7 @@ class GibbsIsing:
 		# Optimizer
 		if not optimizer:
 			self.optimizer = SPSA(termination_checker=self.termination_checker)
-			self.max_iter = 100
+			self.max_iter = 300
 		else:
 			self.optimizer = optimizer
 			self.max_iter = None
@@ -72,8 +72,12 @@ class GibbsIsing:
 		else:
 			self.user_messenger = user_messenger
 		# Transpilation
+		print(self.pauli_circuits[-1])
+		quit()
 		if not self.skip_transpilation:
 			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, optimization_level=3)
+		print(self.pauli_circuits[-1])
+		quit()
 		# Error mitigation
 		if self.use_measurement_mitigation:
 			self.mappings = final_measurement_mapping(self.pauli_circuits)
@@ -242,7 +246,7 @@ class GibbsIsing:
 		return qc
 
 	def ancilla_unitary(self, n):  # Ancilla ansatz
-		qc = QuantumCircuit(2)
+		qc = QuantumCircuit(n)
 		for _ in range(self.ancilla_reps):
 			for i in range(n):
 				self.add_ry_gate(qc, i)
