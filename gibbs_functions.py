@@ -1,5 +1,5 @@
+import json
 import os
-import pickle
 from typing import Callable
 
 import numpy as np
@@ -17,12 +17,6 @@ def funm_psd(A: list[list[complex]], func: Callable[[list[list[complex]]], compl
 	w, v = eigh(A)
 	w = np.maximum(w, 0)
 	return (v * func(w)).dot(v.conj().T)
-
-
-def save_data(folder: str, data) -> None:  # function to save kwargs as pickle file
-	os.makedirs(f'{folder}', exist_ok=True)
-	with open(f'{folder}/data.pkl', 'wb') as file:
-		pickle.dump(data, file)
 
 
 def trace_distance(rho: list[list[complex]], sigma: list[list[complex]]) -> float:
@@ -111,6 +105,10 @@ class ExactResult(OptimizeResult):
 def _gibbs_result(gibbs):
 	if isinstance(gibbs, dict):
 		return dict(
+			n=gibbs['n'],
+			J=gibbs['J'],
+			h=gibbs['h'],
+			beta=gibbs['beta'],
 			# ancilla_unitary_params=gibbs.ancilla_params(),
 			# system_unitary_params=gibbs.system_params(),
 			params=gibbs['params'],
@@ -130,7 +128,10 @@ def _gibbs_result(gibbs):
 			noiseless_hamiltonian_eigenvalues=gibbs['noiseless_hamiltonian_eigenvalues']
 		)
 	return dict(
-		result=gibbs.result,
+		n=gibbs.n,
+		J=gibbs.J,
+		h=gibbs.h,
+		beta=gibbs.beta,
 		ancilla_unitary_params=gibbs.ancilla_params(),
 		system_unitary_params=gibbs.system_params(),
 		params=gibbs.params,
@@ -154,3 +155,106 @@ def _gibbs_result(gibbs):
 class GibbsResult(OptimizeResult):
 	def __init__(self, gibbs) -> OptimizeResult:
 		super().__init__(_gibbs_result(gibbs))
+
+
+def print_results(results, output_folder=None):
+	if not isinstance(results, list):
+		results = [results]
+	if output_folder:
+		os.makedirs(f'{output_folder}', exist_ok=True)
+	for i, result in enumerate(results):
+		n = result['n']
+		J = result['J']
+		h = result['h']
+		beta = result['beta']
+		hamiltonian = ising_hamiltonian(n, J, h)
+		# get calculated results
+		calculated_result = _gibbs_result(result)
+		# Calculate exact results
+		exact_result = _exact_result(hamiltonian, beta)
+		# Calculate comparative results
+		ep = purity(exact_result['gibbs_state'])
+		cf = fidelity(exact_result['gibbs_state'], calculated_result['rho'])
+		ctd = trace_distance(exact_result['gibbs_state'], calculated_result['rho'])
+		cre = relative_entropy(exact_result['gibbs_state'], calculated_result['rho'])
+		cp = purity(calculated_result['rho'])
+		nf = fidelity(exact_result['gibbs_state'], calculated_result['noiseless_rho'])
+		ntd = trace_distance(exact_result['gibbs_state'], calculated_result['noiseless_rho'])
+		nre = relative_entropy(exact_result['gibbs_state'], calculated_result['noiseless_rho'])
+		np = purity(calculated_result['noiseless_rho'])
+		# Print results
+		print()
+		print(f"n: {n}")
+		print(f"J: {J}")
+		print(f"h: {h}")
+		print(f"beta: {beta}")
+		print()
+		print("Exact Gibbs state: ")
+		print(exact_result['gibbs_state'])
+		print()
+		print("Calculated Gibbs state: ")
+		print(calculated_result['rho'])
+		print()
+		print("Noiseless Calculated Gibbs state: ")
+		print(calculated_result['noiseless_rho'])
+		print()
+		print(f"VQA cost: {calculated_result['cost']}")
+		print(f"Exact cost: {exact_result['cost']}")
+		print()
+		print(f"VQA energy: {calculated_result['energy']}")
+		print(f"Exact energy: {exact_result['energy']}")
+		print()
+		print(f"VQA entropy: {calculated_result['entropy']}")
+		print(f"Exact entropy: {exact_result['entropy']}")
+		print()
+		print(f"VQA eigenvalues: {calculated_result['eigenvalues']}")
+		print(f"Exact eigenvalues: {exact_result['eigenvalues']}")
+		print()
+		print(f"VQA Hamiltonian eigenvalues: {calculated_result['hamiltonian_eigenvalues']}")
+		print(f"Exact Hamiltonian eigenvalues: {exact_result['hamiltonian_eigenvalues']}")
+		print()
+		print(f"Exact Purity: {ep}")
+		print()
+		print(f"Calculated Fidelity: {cf}")
+		print(f"Calculated Trace Distance: {ctd}")
+		print(f"Calculated Relative Entropy: {cre}")
+		print(f"Calculated Purity: {cp}")
+		print()
+		print(f"Noiseless Fidelity: {nf}")
+		print(f"Noiseless Trace Distance: {ntd}")
+		print(f"Noiseless Relative Entropy: {nre}")
+		print(f"Noiseless Purity: {np}")
+		print()
+
+		if output_folder:
+			data = dict(
+				n=n,
+				J=J,
+				h=h,
+				beta=beta,
+				calculated_result=calculated_result,
+				exact_result=exact_result,
+				metrics=dict(
+					exact_purity=ep,
+					calculated_fidelity=cf,
+					calculated_trace_distance=ctd,
+					calculated_relative_entropy=cre,
+					calculated_purity=cp,
+					noiseless_fidelity=nf,
+					noiseless_trace_distance=ntd,
+					noiseless_relative_entropy=nre,
+					noiseless_purity=np,
+				)
+			)
+
+			with open(f'{output_folder}/{i}.json', 'w') as f:
+				json.dump(data, f, indent=4, cls=ResultsEncoder)
+
+
+class ResultsEncoder(json.JSONEncoder):
+	def default(self, obj):
+		if isinstance(obj, complex):
+			return [obj.real, obj.imag]
+		if isinstance(obj, np.ndarray):
+			return obj.tolist()
+		return json.JSONEncoder.default(self, obj)
