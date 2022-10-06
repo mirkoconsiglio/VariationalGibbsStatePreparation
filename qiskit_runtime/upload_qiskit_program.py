@@ -87,6 +87,12 @@ if __name__ == '__main__':
 				               "next beta, default is False.",
 				"type": "boolean",
 				"default": False,
+			},
+			"noise_model": {
+				"description": "Use noise model if running on a simulator, "
+				               "needs to be a serialized Qiskit NoiseModel.",
+				"type": "dict",
+				"default": None,
 			}
 		}
 	}

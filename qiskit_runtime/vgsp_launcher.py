@@ -1,3 +1,5 @@
+from qiskit import IBMQ
+from qiskit_aer.noise import NoiseModel
 from qiskit_ibm_runtime import QiskitRuntimeService
 
 from job_results import print_results
@@ -11,7 +13,7 @@ def callback(job_id, interim_result):
 if __name__ == '__main__':
 	service = QiskitRuntimeService()
 	program_id = 'vgsp-ising-xVBvWpWqyV'  # program id once it is uploaded
-	inputs = dict()
+	inputs = dict(noise_model=NoiseModel.from_backend(IBMQ.load_account().get_backend('ibmq_jakarta')).to_dict())
 
 	backend_name = "ibmq_qasm_simulator"
 	options = dict(backend_name=backend_name)  # Choose backend (required)

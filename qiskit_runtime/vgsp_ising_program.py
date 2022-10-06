@@ -1,11 +1,15 @@
+from collections import Counter
+
 import numpy as np
 from mthree import M3Mitigation
+from mthree.classes import QuasiCollection, QuasiDistribution
 from mthree.utils import final_measurement_mapping
 from qiskit import QuantumCircuit, transpile
-from qiskit.algorithms.optimizers import *
+from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit import Parameter
-from qiskit.providers.aer import AerSimulator
 from qiskit.quantum_info import Statevector, partial_trace
+from qiskit_aer import AerSimulator
+from qiskit_aer.noise import NoiseModel
 from qiskit_experiments.library import StateTomography
 from qiskit_ibm_runtime.program import UserMessenger
 from scipy.special import xlogy
@@ -21,11 +25,13 @@ class GibbsIsing:
 			ancilla_reps=None,
 			system_reps=None,
 			optimizer=None,
+			min_kwargs=None,
 			shots=1024,
 			backend=None,
 			user_messenger=None,
 			skip_transpilation=False,
-			use_measurement_mitigation=False
+			use_measurement_mitigation=False,
+			noise_model=None
 	):
 		# Hamiltonian and cost function setup
 		self.n = n
@@ -35,7 +41,7 @@ class GibbsIsing:
 		self.total_n = 2 * self.n
 		self.dimension = 2 ** self.n
 		self.beta = beta
-		self.inverse_beta = 1 / self.beta
+		self.inverse_beta = 1. / self.beta
 		self.ancilla_reps = ancilla_reps if ancilla_reps else self.n - 1
 		self.system_reps = system_reps if system_reps else self.n - 1
 		self.skip_transpilation = skip_transpilation
@@ -47,16 +53,18 @@ class GibbsIsing:
 		self.ansatz = self.var_ansatz(self.n)
 		self.pauli_circuits = self.generate_measurement_circuits()
 		self.num_pauli_circuits = len(self.pauli_circuits)
+		# Minimizer kwargs
+		if not min_kwargs:
+			self.min_kwargs = dict()
+		else:
+			self.min_kwargs = min_kwargs
+		self.min_kwargs.update(callback=self.callback)
 		# Optimizer
 		if not optimizer:
-			self.optimizer = SPSA(termination_checker=self.termination_checker)
-			self.max_iter = 300
+			self.optimizer = SPSA(**self.min_kwargs)
 		else:
-			self.optimizer = optimizer
-			self.max_iter = None
-		# Need both because of ScipyOptimizers
-		self.optimizer.callback = self.callback
-		self.optimizer.set_options(callback=self.callback)
+			self.optimizer = optimizer(**self.min_kwargs)
+		# Bounds
 		self.bounds = [(0, 2 * np.pi)] * len(self.ansatz.parameters)
 		# Shots
 		self.shots = shots
@@ -66,18 +74,24 @@ class GibbsIsing:
 			self.backend = AerSimulator()
 		else:
 			self.backend = backend
+		# Noise model
+		if noise_model:
+			# noinspection PyDeprecation
+			self.noise_model = NoiseModel.from_dict(noise_model)
+			self.backend.set_options(noise_model=self.noise_model)
+		else:
+			self.noise_model = None
 		# User messenger
 		if not user_messenger:
 			self.user_messenger = UserMessenger()
 		else:
 			self.user_messenger = user_messenger
 		# Transpilation
-		print(self.pauli_circuits[-1])
-		quit()
+		self.transpilation_options = dict(optimization_level=3, layout_method='sabre', routing_method='sabre')
+		# self.pauli_circuits[-1].decompose().draw('mpl', filename=f'figures/qiskit_circuit_{self.n}')
 		if not self.skip_transpilation:
-			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, optimization_level=3)
-		print(self.pauli_circuits[-1])
-		quit()
+			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, **self.transpilation_options)
+		# self.pauli_circuits[-1].draw('mpl', filename=f'figures/transpiled_qiskit_circuit_{self.n}')
 		# Error mitigation
 		if self.use_measurement_mitigation:
 			self.mappings = final_measurement_mapping(self.pauli_circuits)
@@ -114,8 +128,6 @@ class GibbsIsing:
 		# Start optimization
 		print('| iter | nfev | Cost | Energy | Entropy |')
 		result = self.optimizer.minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds)
-		if self.max_iter and result.nit != self.max_iter:
-			return None
 		# Compute cost function at the last parameters
 		self.params = result.x
 		self.cost_fun(self.params)
@@ -162,17 +174,18 @@ class GibbsIsing:
 		bound_circuits = [circuit.bind_parameters(self.params) for circuit in self.pauli_circuits]
 		# Submit the job and get the result counts back
 		results = self.backend.run(bound_circuits, shots=self.shots).result().get_counts()
-		# Apply error mitigation
+		# Apply error mitigation (get QuasiCollection from M3)
 		if self.use_measurement_mitigation:
-			results = [result.items() for result in self.mit.apply_correction(results, self.mappings)]
+			results = self.mit.apply_correction(results, self.mappings)
 		else:
-			results = [[(key, value / self.shots) for key, value in result.items()] for result in results]
+			results = QuasiCollection([QuasiDistribution([(key, value / self.shots) for key, value in result.items()])
+			                           for result in results])
 		# Post-process results
 		energy = 0
-		p = np.zeros(self.dimension)
+		p = Counter()
 		for counts, (label, (coef, qubits)) in zip(results, self.commuting_terms.items()):
 			# Evaluate energy and entropy
-			for shot, n in counts:
+			for shot, n in counts.items():
 				# Note that Qiskit returns in little-endian, and we read big-endian,
 				# so the shot string needs to be reversed
 				shot = shot[::-1]
@@ -184,13 +197,29 @@ class GibbsIsing:
 						energy += self.xx_expectation(shot[self.n:], q1, q2) * coef * n
 				# Entropy
 				self.probabilities(p, shot[:self.n], n)
-
+		# If we get a quasi distribution, get back the nearest probability distribution
+		p = QuasiDistribution(p, shots=self.total_shots).nearest_probability_distribution()
+		# Compute cost
 		self.energy = energy
-		self.eigenvalues = p / self.num_pauli_circuits
+		self.eigenvalues = [i[1] for i in sorted(p.items())]  # Sort eigenvalues according to bit string
 		self.entropy = self.entropy_fun(self.eigenvalues)
 		self.cost = self.energy - self.inverse_beta * self.entropy
 
 		return self.cost
+
+	@staticmethod
+	def all_z_expectation(shot, n):
+		return 2 * shot.count('0') - n
+
+	@staticmethod
+	def xx_expectation(shot, q1, q2):
+		return 1 if shot[q1] == shot[q2] else -1
+
+	def probabilities(self, p, shot, n):
+		j = 0
+		for b in shot:
+			j = (j << 1) | int(b)
+		p.update({j: n / self.num_pauli_circuits})
 
 	@staticmethod
 	def entropy_fun(p):
@@ -306,30 +335,6 @@ class GibbsIsing:
 		)
 		self.user_messenger.publish(message)
 
-	# noinspection PyUnusedLocal
-	def termination_checker(self, *args, **kwargs):
-		if np.isnan(self.params).any():
-			print("NaN detected in parameters, repeating beta.")
-			return True
-		if np.isnan(self.cost):
-			print("NaN detected in cost, repeating beta.")
-			return True
-
-	@staticmethod
-	def all_z_expectation(shot, n):
-		return 2 * shot.count('0') - n
-
-	@staticmethod
-	def xx_expectation(shot, q1, q2):
-		return 1 if shot[q1] == shot[q2] else -1
-
-	@staticmethod
-	def probabilities(p, shot, n):
-		j = 0
-		for b in shot:
-			j = (j << 1) | int(b)
-		p[j] += n
-
 	def statevector_tomography(self):
 		circuit = self.ansatz.bind_parameters(self.params)
 		statevector = Statevector(circuit)
@@ -341,12 +346,16 @@ class GibbsIsing:
 	def sampled_tomography(self):
 		# State tomography for rho
 		rho_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.system_qubits)
+		rho_qst.set_transpile_options(**self.transpilation_options)
+		# rho_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
 		rho_data = rho_qst.run(self.backend, shots=self.shots).block_for_results()
-		rho = rho_data.analysis_results("state").value.data
+		rho = rho_data.analysis_results('state').value.data
 		# State tomography for sigma
 		sigma_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.ancilla_qubits)
+		sigma_qst.set_transpile_options(**self.transpilation_options)
+		# sigma_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
 		sigma_data = sigma_qst.run(self.backend, shots=self.shots).block_for_results()
-		sigma = sigma_data.analysis_results("state").value.data.diagonal().real
+		sigma = sigma_data.analysis_results('state').value.data.diagonal().real
 
 		return rho, sigma
 
@@ -363,10 +372,12 @@ def main(
 		system_reps=1,
 		x0=None,
 		optimizer=None,
+		min_kwargs=None,
 		shots=1024,
 		use_measurement_mitigation=True,
 		skip_transpilation=False,
-		adiabatic_assistance=False
+		adiabatic_assistance=False,
+		noise_model=None
 ):
 	if beta is None:
 		beta = [1e-8, 0.2, 0.5, 0.8, 1., 1.2, 2., 5.]
@@ -374,18 +385,13 @@ def main(
 		beta = [beta]
 	results = []
 	for _beta in beta:
-		success = False
-		while not success:
-			gibbs = GibbsIsing(n, J, h, _beta, ancilla_reps, system_reps, optimizer, shots, backend, user_messenger,
-			                   skip_transpilation, use_measurement_mitigation)
-			result = gibbs.run(x0)
-			if result:
-				# If we got a valid result we can continue iterating over beta, otherwise repeat loop
-				success = True
-				# Add to our results
-				results.append(result)
-				# Start optimization from parameters of previous beta
-				if adiabatic_assistance:
-					x0 = result['params']
+		gibbs = GibbsIsing(n, J, h, _beta, ancilla_reps, system_reps, optimizer, min_kwargs, shots, backend,
+		                   user_messenger, skip_transpilation, use_measurement_mitigation, noise_model)
+		result = gibbs.run(x0)
+		# Add to our results
+		results.append(result)
+		# Start optimization from parameters of previous beta
+		if adiabatic_assistance:
+			x0 = result['params']
 
 	return results
