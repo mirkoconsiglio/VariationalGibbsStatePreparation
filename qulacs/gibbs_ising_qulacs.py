@@ -3,7 +3,8 @@ from collections import Counter
 from functools import reduce
 from itertools import product
 
-from qiskit.algorithms.optimizers import POWELL
+import numpy as np
+from qiskit.algorithms.optimizers import *
 from qiskit.utils import algorithm_globals
 from qulacs import ParametricQuantumCircuit, QuantumState
 from qulacs.gate import (sqrtX, RZ, ParametricRZ, CNOT, AmplitudeDampingNoise, DephasingNoise, DepolarizingNoise,
@@ -11,16 +12,8 @@ from qulacs.gate import (sqrtX, RZ, ParametricRZ, CNOT, AmplitudeDampingNoise, D
 from qulacs.observable import create_observable_from_openfermion_text
 from qulacs.state import partial_trace
 from scipy.special import xlogy
-from sklearn.gaussian_process.kernels import *
 
 from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms, GibbsResult
-
-
-def powerseries(eta=0.01, power=2, offset=0):
-	n = 1
-	while True:
-		yield eta / ((n + offset) ** power)
-		n += 1
 
 
 class GibbsIsing:
@@ -108,14 +101,19 @@ class GibbsIsing:
 		if noise_model:
 			with open('noise_model.json', 'r') as f:
 				self.noise_model = json.load(f)
-
-		self.ancilla_reps = ancilla_reps or self.n - 1
-		self.system_reps = system_reps or self.n - 1
+		if ancilla_reps is not None:
+			self.ancilla_reps = ancilla_reps
+		else:
+			self.ancilla_reps = self.n
+		if system_reps is not None:
+			self.system_reps = system_reps
+		else:
+			self.system_reps = self.n
 		self.init_var_ansatz()
 		self.num_ancilla_params = self.n * (self.ancilla_reps + 1)
 		self.num_params = self.ansatz.get_parameter_count()
 		self.num_system_params = self.num_params - self.num_ancilla_params
-		self.x0 = x0 if x0 else np.random.uniform(0, 2 * np.pi, self.num_params)
+		self.x0 = x0 if x0 is not None else np.random.uniform(0, 2 * np.pi, self.num_params)
 		self.bounds = [(0, 2 * np.pi)] * self.num_params
 		# Set up minimizer kwargs
 		self.min_kwargs = min_kwargs if min_kwargs else dict()
@@ -161,6 +159,7 @@ class GibbsIsing:
 
 	@staticmethod
 	def entropy_fun(p):
+		# noinspection PyCallingNonCallable
 		return -np.sum([xlogy(i, i) for i in p])
 
 	@staticmethod
@@ -170,6 +169,7 @@ class GibbsIsing:
 	def get_bit_list(self, i, n):
 		return [int(k) for k in self.get_bit_string(i, n)]
 
+	# noinspection PyUnusedLocal
 	def callback(self, *args, **kwargs):
 		self.iter += 1
 		print(f'| {self.iter} | {self.nfev} | {self.cost:.8f} | {self.energy:.8f} | {self.entropy:.8f} |')
