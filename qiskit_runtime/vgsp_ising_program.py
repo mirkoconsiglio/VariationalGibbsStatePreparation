@@ -1,3 +1,4 @@
+import inspect
 from collections import Counter
 
 import numpy as np
@@ -5,7 +6,7 @@ from mthree import M3Mitigation
 from mthree.classes import QuasiCollection, QuasiDistribution
 from mthree.utils import final_measurement_mapping
 from qiskit import QuantumCircuit, transpile
-from qiskit.algorithms.optimizers import SPSA
+from qiskit.algorithms import optimizers
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Statevector, partial_trace
 from qiskit_aer import AerSimulator
@@ -13,6 +14,8 @@ from qiskit_aer.noise import NoiseModel
 from qiskit_experiments.library import StateTomography
 from qiskit_ibm_runtime.program import UserMessenger
 from scipy.special import xlogy
+
+_optimizers = dict(inspect.getmembers(optimizers, inspect.isclass))
 
 
 class GibbsIsing:
@@ -24,7 +27,7 @@ class GibbsIsing:
 			beta=1.,
 			ancilla_reps=None,
 			system_reps=None,
-			optimizer=None,
+			optimizer='SPSA',
 			min_kwargs=None,
 			shots=1024,
 			backend=None,
@@ -58,12 +61,8 @@ class GibbsIsing:
 			self.min_kwargs = dict()
 		else:
 			self.min_kwargs = min_kwargs
-		self.min_kwargs.update(callback=self.callback)
 		# Optimizer
-		if not optimizer:
-			self.optimizer = SPSA(**self.min_kwargs)
-		else:
-			self.optimizer = optimizer(**self.min_kwargs)
+		self.optimizer = _optimizers[optimizer](**self.min_kwargs, callback=self.callback)
 		# Bounds
 		self.bounds = [(0, 2 * np.pi)] * len(self.ansatz.parameters)
 		# Shots
@@ -126,7 +125,7 @@ class GibbsIsing:
 		else:
 			self.x0 = x0
 		# Start optimization
-		print('| iter | nfev | Cost | Energy | Entropy |')
+		print("| iter | nfev | Cost | Energy | Entropy |")
 		result = self.optimizer.minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds)
 		# Compute cost function at the last parameters
 		self.params = result.x
@@ -160,7 +159,14 @@ class GibbsIsing:
 			noiseless_sigma=self.noiseless_sigma,
 			noiseless_eigenvalues=self.noiseless_eigenvalues,
 			hamiltonian_eigenvalues=self.hamiltonian_eigenvalues,
-			noiseless_hamiltonian_eigenvalues=self.noiseless_hamiltonian_eigenvalues
+			noiseless_hamiltonian_eigenvalues=self.noiseless_hamiltonian_eigenvalues,
+			skip_transpilation=self.skip_transpilation,
+			use_measurement_mitigation=self.use_measurement_mitigation,
+			ansatz=self.ansatz,
+			optimizer=self.optimizer.__class__.__name__,
+			min_kwargs=self.min_kwargs,
+			shots=self.shots,
+			backend=self.backend.name
 		)
 		# Publish data
 		self.user_messenger.publish(data)
@@ -323,7 +329,7 @@ class GibbsIsing:
 	# noinspection PyUnusedLocal
 	def callback(self, *args, **kwargs):
 		self.iter += 1
-		print(f'| {self.iter} | {self.nfev} | {self.cost:.8f} | {self.energy:.8f} | {self.entropy:.8f} |')
+		print(f"| {self.iter} | {self.nfev} | {self.cost:.8f} | {self.energy:.8f} | {self.entropy:.8f} |")
 		message = dict(
 			iter=self.iter,
 			nfev=self.nfev,
@@ -348,13 +354,13 @@ class GibbsIsing:
 		rho_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.system_qubits)
 		rho_qst.set_transpile_options(**self.transpilation_options)
 		# rho_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
-		rho_data = rho_qst.run(self.backend, shots=self.shots).block_for_results()
+		rho_data = rho_qst.run(self.backend, shots=8192).block_for_results()
 		rho = rho_data.analysis_results('state').value.data
-		# State tomography for sigma
+		# State tomography for sigma (assuming it is diagonal)
 		sigma_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.ancilla_qubits)
 		sigma_qst.set_transpile_options(**self.transpilation_options)
 		# sigma_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
-		sigma_data = sigma_qst.run(self.backend, shots=self.shots).block_for_results()
+		sigma_data = sigma_qst.run(self.backend, shots=8192).block_for_results()
 		sigma = sigma_data.analysis_results('state').value.data.diagonal().real
 
 		return rho, sigma
@@ -371,7 +377,7 @@ def main(
 		ancilla_reps=1,
 		system_reps=1,
 		x0=None,
-		optimizer=None,
+		optimizer='SPSA',
 		min_kwargs=None,
 		shots=1024,
 		use_measurement_mitigation=True,

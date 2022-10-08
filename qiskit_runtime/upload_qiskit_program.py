@@ -5,7 +5,7 @@ if __name__ == '__main__':
 	meta = dict(
 		name="vgsp_ising",
 		description="Variational Gibbs State Preparation (VGSP) for the Ising model",
-		max_execution_time=100000,
+		max_execution_time=604800,  # One week
 		spec=dict()
 	)
 	# Input Parameters
@@ -62,9 +62,9 @@ if __name__ == '__main__':
 				"default": None
 			},
 			"optimizer": {
-				"description": "Classical optimizer to use, default is SPSA().",
-				"type": "Qiskit Optimizer",
-				"default": None
+				"description": "Qiskit optimizer to use.",
+				"type": "string",
+				"default": 'SPSA'
 			},
 			"shots": {
 				"description": "The number of shots used for each circuit evaluation.",
@@ -99,16 +99,16 @@ if __name__ == '__main__':
 	# Output results
 	meta["spec"]["return_values"] = {
 		"$schema": "https://json-schema.org/draft/2019-09/schema",
-		"description": "Final result containing list of parameters, cost, energy, entropy, eigenvalues, "
+		"description": "Final result containing dicts of parameters, cost, energy, entropy, eigenvalues, "
 		               "iterations and function evaluations, among others.",
 		"type": "array",
 	}
 	# Interim results
 	meta["spec"]["interim_results"] = {
 		"$schema": "https://json-schema.org/draft/2019-09/schema",
-		"description": "List of results such as parameters, cost, energy, entropy, eigenvalues, "
+		"description": "dict of results such as parameters, cost, energy, entropy, eigenvalues, "
 		               "iterations and function evaluations.",
-		"type": "array",
+		"type": "dict",
 	}
 
 	service = QiskitRuntimeService()

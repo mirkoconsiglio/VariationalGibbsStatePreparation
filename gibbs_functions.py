@@ -6,6 +6,7 @@ import numpy as np
 from numpy.linalg import eigh
 from openfermion import QubitOperator
 from openfermion.linalg import qubit_operator_sparse
+from qiskit_ibm_runtime import RuntimeEncoder
 from scipy.linalg import norm, logm, expm
 from scipy.optimize import OptimizeResult
 
@@ -105,10 +106,6 @@ class ExactResult(OptimizeResult):
 def _gibbs_result(gibbs):
 	if isinstance(gibbs, dict):
 		return dict(
-			n=gibbs['n'],
-			J=gibbs['J'],
-			h=gibbs['h'],
-			beta=gibbs['beta'],
 			# ancilla_unitary_params=gibbs.ancilla_params(),
 			# system_unitary_params=gibbs.system_params(),
 			params=gibbs['params'],
@@ -128,10 +125,6 @@ def _gibbs_result(gibbs):
 			noiseless_hamiltonian_eigenvalues=gibbs['noiseless_hamiltonian_eigenvalues']
 		)
 	return dict(
-		n=gibbs.n,
-		J=gibbs.J,
-		h=gibbs.h,
-		beta=gibbs.beta,
 		ancilla_unitary_params=gibbs.ancilla_params(),
 		system_unitary_params=gibbs.system_params(),
 		params=gibbs.params,
@@ -228,10 +221,21 @@ def print_results(results, output_folder=None):
 
 		if output_folder:
 			data = dict(
-				n=n,
-				J=J,
-				h=h,
-				beta=beta,
+				metadata=dict(
+					n=n,
+					J=J,
+					h=h,
+					beta=beta,
+					ancilla_reps=result['ancilla_reps'],
+					system_reps=result['system_reps'],
+					skip_transpilation=result['skip_transpilation'],
+					use_measurement_mitigation=result['use_measurement_mitigation'],
+					ansatz=result['ansatz'],
+					optimizer=result['optimizer'],
+					min_kwargs=result['min_kwargs'],
+					shots=result['shots'],
+					backend=result['backend']
+				),
 				calculated_result=calculated_result,
 				exact_result=exact_result,
 				metrics=dict(
@@ -251,10 +255,8 @@ def print_results(results, output_folder=None):
 				json.dump(data, f, indent=4, cls=ResultsEncoder)
 
 
-class ResultsEncoder(json.JSONEncoder):
+class ResultsEncoder(RuntimeEncoder):
 	def default(self, obj):
-		if isinstance(obj, complex):
-			return [obj.real, obj.imag]
 		if isinstance(obj, np.ndarray):
 			return obj.tolist()
-		return json.JSONEncoder.default(self, obj)
+		return RuntimeEncoder.default(self, obj)
