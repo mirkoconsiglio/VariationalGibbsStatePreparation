@@ -13,19 +13,21 @@ def callback(job_id, interim_result):
 if __name__ == '__main__':
 	service = QiskitRuntimeService()
 	program_id = 'vgsp-ising-xVBvWpWqyV'  # program id once it is uploaded
-	inputs = dict(noise_model=NoiseModel.from_backend(IBMQ.load_account().get_backend('ibmq_jakarta')).to_dict())
+	inputs = dict(n=3, noise_model=NoiseModel.from_backend(IBMQ.load_account().get_backend('ibmq_jakarta')).to_dict())
 
 	backend_name = "ibmq_qasm_simulator"
 	options = dict(backend_name=backend_name)  # Choose backend (required)
 	# Run job
 	job = service.run(program_id, options=options, inputs=inputs)
-	print(f"Job sent to {backend_name} with job ID: {job.job_id}")
+	job_id = job.job_id
+	print(f"Job sent to {backend_name} with job ID: {job_id}")
 	# Start streaming results
 	job.stream_results(callback)
 	# Get results
 	results = job.result()
-	# Print results
-	print_results(results)
+	# Print and save results
+	folder = f'jobs/{backend_name}/{job_id}'
+	print_results(results, output_folder=folder)
 
 # for backend in service.backends(simulator=False, min_num_qubits=4):
 # 	try:

@@ -8,7 +8,8 @@ from openfermion import QubitOperator
 from openfermion.linalg import qubit_operator_sparse
 from qiskit_ibm_runtime import RuntimeEncoder
 from scipy.linalg import norm, logm, expm
-from scipy.optimize import OptimizeResult
+
+from qulacs import ParametricQuantumCircuit
 
 
 def funm_psd(A: list[list[complex]], func: Callable[[list[list[complex]]], complex]) -> list[list[complex]]:
@@ -98,11 +99,6 @@ def _exact_result(hamiltonian, beta):
 	)
 
 
-class ExactResult(OptimizeResult):
-	def __init__(self, hamiltonian, beta) -> OptimizeResult:
-		super().__init__(_exact_result(hamiltonian, beta))
-
-
 def _gibbs_result(gibbs):
 	if isinstance(gibbs, dict):
 		return dict(
@@ -143,11 +139,6 @@ def _gibbs_result(gibbs):
 		hamiltonian_eigenvalues=gibbs.hamiltonian_eigenvalues,
 		noiseless_hamiltonian_eigenvalues=gibbs.noiseless_hamiltonian_eigenvalues
 	)
-
-
-class GibbsResult(OptimizeResult):
-	def __init__(self, gibbs) -> OptimizeResult:
-		super().__init__(_gibbs_result(gibbs))
 
 
 def print_results(results, output_folder=None):
@@ -226,15 +217,15 @@ def print_results(results, output_folder=None):
 					J=J,
 					h=h,
 					beta=beta,
-					ancilla_reps=result['ancilla_reps'],
-					system_reps=result['system_reps'],
-					skip_transpilation=result['skip_transpilation'],
-					use_measurement_mitigation=result['use_measurement_mitigation'],
-					ansatz=result['ansatz'],
-					optimizer=result['optimizer'],
-					min_kwargs=result['min_kwargs'],
-					shots=result['shots'],
-					backend=result['backend']
+					ancilla_reps=result.get('ancilla_reps'),
+					system_reps=result.get('system_reps'),
+					skip_transpilation=result.get('skip_transpilation'),
+					use_measurement_mitigation=result.get('use_measurement_mitigation'),
+					ansatz=result.get('ansatz'),
+					optimizer=result.get('optimizer'),
+					min_kwargs=result.get('min_kwargs'),
+					shots=result.get('shots'),
+					backend=result.get('backend')
 				),
 				calculated_result=calculated_result,
 				exact_result=exact_result,
@@ -259,4 +250,6 @@ class ResultsEncoder(RuntimeEncoder):
 	def default(self, obj):
 		if isinstance(obj, np.ndarray):
 			return obj.tolist()
+		if isinstance(obj, ParametricQuantumCircuit):
+			return None
 		return RuntimeEncoder.default(self, obj)

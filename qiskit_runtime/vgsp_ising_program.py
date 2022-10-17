@@ -64,7 +64,7 @@ class GibbsIsing:
 		# Optimizer
 		self.optimizer = _optimizers[optimizer](**self.min_kwargs, callback=self.callback)
 		# Bounds
-		self.bounds = [(0, 2 * np.pi)] * len(self.ansatz.parameters)
+		self.bounds = [(-np.pi, np.pi)] * len(self.ansatz.parameters)
 		# Shots
 		self.shots = shots
 		self.total_shots = self.shots * self.num_pauli_circuits
@@ -121,7 +121,7 @@ class GibbsIsing:
 		self.iter = 0
 		self.nfev = 0
 		if x0 is None:
-			self.x0 = np.random.uniform(0, 2 * np.pi, self.ansatz.num_parameters)
+			self.x0 = np.random.uniform(-np.pi, np.pi, self.ansatz.num_parameters)
 		else:
 			self.x0 = x0
 		# Start optimization
@@ -148,6 +148,8 @@ class GibbsIsing:
 			beta=self.beta,
 			ancilla_reps=self.ancilla_reps,
 			system_reps=self.system_reps,
+			iter=self.iter,
+			nfev=self.nfev,
 			cost=self.cost,
 			energy=self.energy,
 			entropy=self.entropy,
@@ -302,11 +304,19 @@ class GibbsIsing:
 
 	def system_unitary(self, n):  # System ansatz
 		qc = QuantumCircuit(n)
+
+		# Initial one-qubit layer
+		for i in range(n):
+			qc.rz(next(self.theta), i)
+
 		for _ in range(self.system_reps):
-			for i in range(0, n - 1, 2):
+			for i in range(0, n, 2):
 				self.add_ising_gate(qc, i, i + 1)
-			for i in range(1, n - 1, 2):
-				self.add_ising_gate(qc, i, i + 1)
+			if n > 2:
+				for i in range(1, n, 2):
+					self.add_ising_gate(qc, i, i + 1)
+			for i in range(n):
+				qc.rz(next(self.theta), i)
 
 		return qc
 
@@ -344,7 +354,7 @@ class GibbsIsing:
 	def statevector_tomography(self):
 		circuit = self.ansatz.bind_parameters(self.params)
 		statevector = Statevector(circuit)
-		rho = partial_trace(statevector, self.ancilla_qubits).data.real
+		rho = partial_trace(statevector, self.ancilla_qubits).data
 		sigma = partial_trace(statevector, self.system_qubits).data.diagonal().real
 
 		return rho, sigma
@@ -354,13 +364,13 @@ class GibbsIsing:
 		rho_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.system_qubits)
 		rho_qst.set_transpile_options(**self.transpilation_options)
 		# rho_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
-		rho_data = rho_qst.run(self.backend, shots=8192).block_for_results()
+		rho_data = rho_qst.run(self.backend, shots=self.shots).block_for_results()
 		rho = rho_data.analysis_results('state').value.data
 		# State tomography for sigma (assuming it is diagonal)
 		sigma_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.ancilla_qubits)
 		sigma_qst.set_transpile_options(**self.transpilation_options)
 		# sigma_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
-		sigma_data = sigma_qst.run(self.backend, shots=8192).block_for_results()
+		sigma_data = sigma_qst.run(self.backend, shots=self.shots).block_for_results()
 		sigma = sigma_data.analysis_results('state').value.data.diagonal().real
 
 		return rho, sigma
