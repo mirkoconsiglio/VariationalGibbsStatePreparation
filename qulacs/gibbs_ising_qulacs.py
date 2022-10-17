@@ -1,19 +1,24 @@
+import inspect
 import json
 from collections import Counter
 from functools import reduce
 from itertools import product
 
 import numpy as np
-from qiskit.algorithms.optimizers import *
+from qiskit.algorithms import optimizers
 from qiskit.utils import algorithm_globals
 from qulacs import ParametricQuantumCircuit, QuantumState
 from qulacs.gate import (sqrtX, RZ, ParametricRZ, CNOT, AmplitudeDampingNoise, DephasingNoise, DepolarizingNoise,
                          BitFlipNoise, TwoQubitDepolarizingNoise)
 from qulacs.observable import create_observable_from_openfermion_text
 from qulacs.state import partial_trace
+# noinspection PyUnresolvedReferences
+from qulacsvis import circuit_drawer
 from scipy.special import xlogy
 
-from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms, GibbsResult
+from gibbs_functions import ising_hamiltonian, ising_hamiltonian_commuting_terms
+
+_optimizers = dict(inspect.getmembers(optimizers, inspect.isclass))
 
 
 class GibbsIsing:
@@ -38,6 +43,7 @@ class GibbsIsing:
 		self.num_params = None
 		self.num_ancilla_params = None
 		self.num_system_params = None
+		self.optimizer = None
 		self.min_kwargs = None
 		self.x0 = None
 		self.bounds = None
@@ -70,6 +76,7 @@ class GibbsIsing:
 		self.noise_model = None
 
 	def run(self,
+	        optimizer: str = 'SPSA',
 	        min_kwargs: dict | None = None,
 	        x0: list[float] | None = None,
 	        shots: int | None = None,
@@ -77,10 +84,11 @@ class GibbsIsing:
 	        system_reps: int | None = None,
 	        seed: int | None = None,
 	        noise_model: bool = False
-	        ) -> GibbsResult:
+	        ) -> dict:
 		"""
 		Executes the variational quantum algorithm for determining the Gibbs states of the Ising model.
 
+		:param optimizer: Qiskit optimizer given as a string.
 		:param min_kwargs: optional kwargs for the minimizer.
 		:param x0: initial set of points for the minimizer, defaults to None. If None, a random list of
 			params between 0 and 2π is chosen.
@@ -93,7 +101,7 @@ class GibbsIsing:
 			between 0 and 2 ** 32 - 1
 		:param noise_model: whether to use noise_model.json as a noise model. Can be customized by
 			generate_noise_model_qulacs.py.
-		:return: GibbsResult object containing results of the simulation
+		:return: dict containing results of the simulation
 		"""
 		self.seed = seed if seed is not None else np.random.randint(2 ** 32)
 		np.random.seed(self.seed)
@@ -104,20 +112,23 @@ class GibbsIsing:
 		if ancilla_reps is not None:
 			self.ancilla_reps = ancilla_reps
 		else:
-			self.ancilla_reps = self.n
+			self.ancilla_reps = 1
 		if system_reps is not None:
 			self.system_reps = system_reps
 		else:
-			self.system_reps = self.n
+			self.system_reps = self.n - 1
 		self.init_var_ansatz()
+		# circuit_drawer(self.ansatz, 'mpl')
+		# quit()
 		self.num_ancilla_params = self.n * (self.ancilla_reps + 1)
 		self.num_params = self.ansatz.get_parameter_count()
 		self.num_system_params = self.num_params - self.num_ancilla_params
-		self.x0 = x0 if x0 is not None else np.random.uniform(0, 2 * np.pi, self.num_params)
-		self.bounds = [(0, 2 * np.pi)] * self.num_params
-		# Set up minimizer kwargs
+		self.x0 = x0 if x0 is not None else np.random.uniform(-np.pi, np.pi, self.num_params)
+		self.bounds = [(-np.pi, np.pi)] * self.num_params
+		# Set up optimizer
 		self.min_kwargs = min_kwargs if min_kwargs else dict()
-		self.min_kwargs.update(callback=self.callback)
+		self.optimizer = _optimizers[optimizer](**self.min_kwargs, callback=self.callback)
+		# Set up cost function
 		self.shots = shots
 		if self.shots:
 			self.cost_fun = self.sampled_cost_fun
@@ -132,8 +143,7 @@ class GibbsIsing:
 		self.iter = 0
 		self.nfev = 0
 		print('| iter | nfev | Cost | Energy | Entropy |')
-		self.result = POWELL(**self.min_kwargs).minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds,
-		                                                 jac=self.gradient_fun)
+		self.result = self.optimizer.minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds, jac=self.gradient_fun)
 		# self.result = gp_minimize(func=self.cost_fun, dimensions=self.bounds, **self.min_kwargs)
 		# Update
 		self.params = self.result.x
@@ -149,8 +159,33 @@ class GibbsIsing:
 		self.hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta * np.log(self.eigenvalues))
 		self.noiseless_hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta *
 		                                                 np.log(self.noiseless_eigenvalues))
-
-		return GibbsResult(self)
+		# Return results
+		return dict(
+			n=self.n,
+			J=self.J,
+			h=self.h,
+			beta=self.beta,
+			ancilla_reps=self.ancilla_reps,
+			system_reps=self.system_reps,
+			iter=self.iter,
+			nfev=self.nfev,
+			cost=self.cost,
+			energy=self.energy,
+			entropy=self.entropy,
+			params=self.params,
+			eigenvalues=self.eigenvalues,
+			rho=self.rho,
+			sigma=self.sigma,
+			noiseless_rho=self.noiseless_rho,
+			noiseless_sigma=self.noiseless_sigma,
+			noiseless_eigenvalues=self.noiseless_eigenvalues,
+			hamiltonian_eigenvalues=self.hamiltonian_eigenvalues,
+			noiseless_hamiltonian_eigenvalues=self.noiseless_hamiltonian_eigenvalues,
+			ansatz=self.ansatz,
+			optimizer=self.optimizer.__class__.__name__,
+			min_kwargs=self.min_kwargs,
+			shots=self.shots
+		)
 
 	@staticmethod
 	def set_parameters(circuit, params):
@@ -263,11 +298,18 @@ class GibbsIsing:
 		if qubits is None:
 			qubits = range(qc.get_qubit_count())
 
+		# Initial one-qubit layer
+		for i in qubits:
+			qc.add_parametric_RZ_gate(i, 0)
+
 		for _ in range(self.system_reps):
-			for i in range(0, len(qubits) - 1, 2):
-				self.add_qiskit_ising_gate(qc, qubits[i], qubits[i + 1])
-			for i in range(1, len(qubits) - 1, 2):
-				self.add_qiskit_ising_gate(qc, qubits[i], qubits[i + 1])
+			for i in range(0, len(qubits), 2):
+				self.add_qiskit_ising_gate(qc, qubits[i], qubits[(i + 1) % self.n])
+			if len(qubits) > 2:
+				for i in range(1, len(qubits), 2):
+					self.add_qiskit_ising_gate(qc, qubits[i], qubits[(i + 1) % self.n])
+			for i in qubits:
+				qc.add_parametric_RZ_gate(i, 0)
 
 		return qc
 
@@ -286,7 +328,7 @@ class GibbsIsing:
 		for i in range(self.dimension):
 			state.set_computational_basis(i)
 			qc.update_quantum_state(state)
-			unitary[i] = state.get_vector().real
+			unitary[:, i] = state.get_vector().real
 
 		return unitary
 
@@ -300,7 +342,7 @@ class GibbsIsing:
 		for i in np.argsort(eigvals):
 			state.set_computational_basis(i)
 			qc.update_quantum_state(state)
-			unitary[i] = state.get_vector().real
+			unitary[:, i] = state.get_vector()
 
 		return unitary
 
@@ -329,7 +371,7 @@ class GibbsIsing:
 		self.state.set_zero_state()
 		self.set_parameters(self.ansatz, self.params)
 		self.ansatz.update_quantum_state(self.state)
-		rho = partial_trace(self.state, self.ancilla_qubits).get_matrix().real
+		rho = partial_trace(self.state, self.ancilla_qubits).get_matrix()
 		sigma = partial_trace(self.state, self.system_qubits).get_matrix().diagonal().real
 
 		return rho, sigma
@@ -383,10 +425,10 @@ class GibbsIsing:
 			counts = [[self.get_bit_string(i, self.total_n), j] for i, j in samples]
 			# Compute rho and sigma
 			for shot, n in counts:
-				# rho (assuming the state is real)
+				# rho
 				for pauli_string in pauli_helper(measurement):
 					post_process_vector = reduce(np.kron, [post_process_strings[i] for i in pauli_string])
-					pauli_matrix = reduce(np.kron, [pauli[i] for i in pauli_string]).real
+					pauli_matrix = reduce(np.kron, [pauli[i] for i in pauli_string])
 					coef = post_process_vector[int(shot[self.n:], 2)]
 					rho += coef * pauli_matrix * n
 				# sigma (assuming the state is diagonal)
