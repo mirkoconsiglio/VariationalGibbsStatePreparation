@@ -45,8 +45,14 @@ class GibbsIsing:
 		self.dimension = 2 ** self.n
 		self.beta = beta
 		self.inverse_beta = 1. / self.beta
-		self.ancilla_reps = ancilla_reps if ancilla_reps else self.n - 1
-		self.system_reps = system_reps if system_reps else self.n - 1
+		if ancilla_reps is not None:
+			self.ancilla_reps = ancilla_reps
+		else:
+			self.ancilla_reps = 1
+		if system_reps is not None:
+			self.system_reps = system_reps
+		else:
+			self.system_reps = self.n - 1
 		self.skip_transpilation = skip_transpilation
 		self.use_measurement_mitigation = use_measurement_mitigation
 		# Ansatz
@@ -87,10 +93,8 @@ class GibbsIsing:
 			self.user_messenger = user_messenger
 		# Transpilation
 		self.transpilation_options = dict(optimization_level=3, layout_method='sabre', routing_method='sabre')
-		# self.pauli_circuits[-1].decompose().draw('mpl', filename=f'figures/qiskit_circuit_{self.n}')
 		if not self.skip_transpilation:
 			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, **self.transpilation_options)
-		# self.pauli_circuits[-1].draw('mpl', filename=f'figures/transpiled_qiskit_circuit_{self.n}')
 		# Error mitigation
 		if self.use_measurement_mitigation:
 			self.mappings = final_measurement_mapping(self.pauli_circuits)
@@ -195,7 +199,7 @@ class GibbsIsing:
 			# Evaluate energy and entropy
 			for shot, n in counts.items():
 				# Note that Qiskit returns in little-endian, and we read big-endian,
-				# so the shot string needs to be reversed
+				# so the bit string needs to be reversed
 				shot = shot[::-1]
 				# Energy
 				if label == 'z':
@@ -216,32 +220,33 @@ class GibbsIsing:
 		return self.cost
 
 	@staticmethod
-	def all_z_expectation(shot, n):
+	def all_z_expectation(shot, n):  # Expectation value of measuring the all-Z operator
 		return 2 * shot.count('0') - n
 
 	@staticmethod
-	def xx_expectation(shot, q1, q2):
+	def xx_expectation(shot, q1, q2):  # Expectation of measuring XX
 		return 1 if shot[q1] == shot[q2] else -1
 
-	def probabilities(self, p, shot, n):
+	def probabilities(self, p, shot, n):  # Update list of probabilities given a count of bit strings
 		j = 0
 		for b in shot:
 			j = (j << 1) | int(b)
 		p.update({j: n / self.num_pauli_circuits})
 
 	@staticmethod
-	def entropy_fun(p):
+	def entropy_fun(p):  # Compute the entropy given a list of probabilities
 		# noinspection PyCallingNonCallable
 		return -np.sum([xlogy(i, i) for i in p])
 
 	@staticmethod
 	def _theta():
-		n = 1
+		n = 0
 		while True:
-			yield Parameter(f'θ{n}')
+			yield Parameter(fr'$\theta_{n}$')
 			n += 1
 
-	def generate_measurement_circuits(self):
+	def generate_measurement_circuits(
+			self):  # Takes commuting terms and produces the circuits required to measure expectation values
 		pauli_circuits = []
 		for label, (_, terms) in self.commuting_terms.items():
 			pauli_circ = self.ansatz.copy()
@@ -255,7 +260,8 @@ class GibbsIsing:
 
 		return pauli_circuits
 
-	def ising_hamiltonian_commuting_terms(self):
+	def ising_hamiltonian_commuting_terms(
+			self):  # Generate the commuting terms of the Ising model to reduce circuit counts
 		terms = dict()
 		if self.J != 0:
 			terms.update(ising_even_odd=[-self.J, [[i, i + 1] for i in range(0, self.n - 1, 2)]])
@@ -271,7 +277,7 @@ class GibbsIsing:
 
 		return terms
 
-	def var_ansatz(self, n):
+	def var_ansatz(self, n):  # Generate the variational ansatz
 		qc = QuantumCircuit(2 * n)
 		UA = self.ancilla_unitary(n)
 		US = self.system_unitary(n)
@@ -296,7 +302,7 @@ class GibbsIsing:
 
 		return qc
 
-	def add_ry_gate(self, qc, q):
+	def add_ry_gate(self, qc, q):  # Add transpiled Ry gate to a circuit
 		qc.sx(q)
 		qc.rz(next(self.theta), q)
 		qc.sx(q)
@@ -320,7 +326,7 @@ class GibbsIsing:
 
 		return qc
 
-	def add_ising_gate(self, qc, q1, q2):  # U = R_yx.R_xy
+	def add_ising_gate(self, qc, q1, q2):  # # Add transpiled RP = R_yx.R_xy gate to a circuit
 		qc.sx(q1)
 		qc.sx(q2)
 		qc.rz(3 * np.pi / 2, q1)
@@ -337,7 +343,7 @@ class GibbsIsing:
 		qc.rz(np.pi / 2, q2)
 
 	# noinspection PyUnusedLocal
-	def callback(self, *args, **kwargs):
+	def callback(self, *args, **kwargs):  # Callback function to save intermediary results
 		self.iter += 1
 		print(f"| {self.iter} | {self.nfev} | {self.cost:.8f} | {self.energy:.8f} | {self.entropy:.8f} |")
 		message = dict(
@@ -351,7 +357,7 @@ class GibbsIsing:
 		)
 		self.user_messenger.publish(message)
 
-	def statevector_tomography(self):
+	def statevector_tomography(self):  # Perform statevector tomography
 		circuit = self.ansatz.bind_parameters(self.params)
 		statevector = Statevector(circuit)
 		rho = partial_trace(statevector, self.ancilla_qubits).data
@@ -359,17 +365,15 @@ class GibbsIsing:
 
 		return rho, sigma
 
-	def sampled_tomography(self):
+	def sampled_tomography(self):  # Perform sampled tomography
 		# State tomography for rho
 		rho_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.system_qubits)
 		rho_qst.set_transpile_options(**self.transpilation_options)
-		# rho_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
 		rho_data = rho_qst.run(self.backend, shots=self.shots).block_for_results()
 		rho = rho_data.analysis_results('state').value.data
 		# State tomography for sigma (assuming it is diagonal)
 		sigma_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.ancilla_qubits)
 		sigma_qst.set_transpile_options(**self.transpilation_options)
-		# sigma_qst.analysis.set_options(fitter='cvxpy_gaussian_lstsq')
 		sigma_data = sigma_qst.run(self.backend, shots=self.shots).block_for_results()
 		sigma = sigma_data.analysis_results('state').value.data.diagonal().real
 
@@ -384,8 +388,8 @@ def main(
 		J=1.,
 		h=0.5,
 		beta=None,
-		ancilla_reps=1,
-		system_reps=1,
+		ancilla_reps=None,
+		system_reps=None,
 		x0=None,
 		optimizer='SPSA',
 		min_kwargs=None,
@@ -396,7 +400,7 @@ def main(
 		noise_model=None
 ):
 	if beta is None:
-		beta = [1e-8, 0.2, 0.5, 0.8, 1., 1.2, 2., 5.]
+		beta = [1e-10, 0.2, 0.5, 0.8, 1., 1.2, 2., 3., 4., 5.]
 	elif not isinstance(beta, list):
 		beta = [beta]
 	results = []
