@@ -5,7 +5,7 @@ if __name__ == '__main__':
 	meta = dict(
 		name="vgsp_ising",
 		description="Variational Gibbs State Preparation (VGSP) for the Ising model",
-		max_execution_time=604800,  # One week
+		max_execution_time=86400,  # One day
 		spec=dict()
 	)
 	# Input Parameters
@@ -18,8 +18,8 @@ if __name__ == '__main__':
 				"default": None
 			},
 			"user_messenger": {
-				"description": "What type of user messenger to use to retrieve"
-				               "interim data, defaults to UserMessenger().",
+				"description": "What type of user messenger to use to retrieve "
+				               "interim data_h_0.5, defaults to UserMessenger().",
 				"type": "integer",
 				"default": None
 			},
@@ -39,11 +39,16 @@ if __name__ == '__main__':
 				"default": 0.5
 			},
 			"beta": {
-				"description": "Inverse temperature beta of the thermal state you want"
-				               "to determine, can be a list of betas. Default is"
+				"description": "Inverse temperature beta of the thermal state you want "
+				               "to determine, can be a list of betas. Default is "
 				               "[1e-8, 0.2, 0.5, 0.8, 1., 1.2, 2., 5.].",
 				"type": "float | list[float]",
 				"default": None
+			},
+			"N": {
+				"description": "Number of repeated runs to perform for each beta",
+				"type": "int",
+				"default": 1
 			},
 			"ancilla_reps": {
 				"description": "Number of layer repetitions for the ancilla unitary.",
@@ -81,13 +86,6 @@ if __name__ == '__main__':
 				"type": "boolean",
 				"default": False,
 			},
-			"adiabatic_assistance": {
-				"description": "Whether to use adiabatic assistance, that is the"
-				               "parameters of the previous beta are used for the"
-				               "next beta, default is False.",
-				"type": "boolean",
-				"default": False,
-			},
 			"noise_model": {
 				"description": "Use noise model if running on a simulator, "
 				               "needs to be a serialized Qiskit NoiseModel.",
@@ -113,7 +111,7 @@ if __name__ == '__main__':
 
 	service = QiskitRuntimeService()
 
-	service.update_program(program_id='vgsp-ising-xVBvWpWqyV', data='vgsp_ising_program.py')
+	service.update_program(program_id='vgsp-ising-n6W7RRa7W6', data='vgsp_ising_program.py')
 	print("Program updated")
 
 # program_id = service.upload_program(data='vgsp_ising_program.py', metadata=meta)
