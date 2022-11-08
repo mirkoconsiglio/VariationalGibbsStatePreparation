@@ -1,14 +1,12 @@
 import numpy as np
-from pytket.circuit import Circuit, Qubit, BasisOrder
-from pytket.extensions.qujax import tk_to_qujax
-from pytket.pauli import Pauli, QubitPauliString
-from qiskit.quantum_info import partial_trace
-from scipy.special import xlogy
-
-from jax import numpy as jnp, random, vmap, jit
+from jax import numpy as jnp, random, vmap
 from jax.lax import scan
-from qujax import get_statetensor_to_expectation_func, sample_bitstrings
 from optax import adam, apply_updates
+from pytket.circuit import Circuit
+from pytket.extensions.qujax import tk_to_qujax
+from pytket.pauli import Pauli
+from qiskit.quantum_info import partial_trace
+from qujax import get_statetensor_to_expectation_func, sample_bitstrings
 
 
 class Gibbs:
@@ -305,7 +303,7 @@ class Gibbs:
 		return new_params, new_opt_state, rk_out
 
 
-class GibbsResult:  # TODO: Fix eigenvector ordering
+class GibbsResult:
 	def __init__(self, gibbs):
 		self.result = gibbs.result
 		self.ancilla_unitary_params = gibbs.ancilla_params()

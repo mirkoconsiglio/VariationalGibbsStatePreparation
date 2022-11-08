@@ -67,10 +67,10 @@ class Gibbs:
 		self.callback()
 		return self.cost
 
-	def energy_fun(self): # TODO: Sampled expectation
+	def energy_fun(self):
 		return self.hamiltonian.state_expectation(self.statevector, self.expec).real
 
-	def entropy_fun(self): # TODO: Sampled entropy
+	def entropy_fun(self):
 		if self.shots:
 			counts = self.statevector.sample_counts(self.shots, self.ancilla_qubits)
 			self.eigvals = [i / self.shots for i in counts.values()]

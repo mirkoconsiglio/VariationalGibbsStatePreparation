@@ -1,12 +1,13 @@
-import scipy
 import os
 
 import numpy as np
+import scipy
 from pytket import Qubit
 from pytket.pauli import Pauli, QubitPauliString
 from pytket.utils.operators import QubitPauliOperator
 from qiskit.algorithms.optimizers import SLSQP, SPSA
 from scipy.linalg import expm, sqrtm
+
 from gibbs_pytket import Gibbs
 
 
@@ -114,4 +115,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-	# TODO: save all data

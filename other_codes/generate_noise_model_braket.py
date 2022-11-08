@@ -28,7 +28,6 @@ for i in range(n):
 	noise_model.add_noise(PhaseDamping(one_qubit_t2), GateCriteria(qubits=i))
 	noise_model.add_noise(Depolarizing(one_qubit_depo), GateCriteria(qubits=i))
 # Two qubit errors
-# TODO: All-to-all coupling instead of linear connectivity
 for i in range(n):
 	for j in range(i + 1, n):
 		noise_model.add_noise(TwoQubitDephasing(two_qubit_t2), GateCriteria(qubits=[(i, j), (j, i)]))

@@ -1,12 +1,12 @@
-import pickle
 import os
+import pickle
 
 import numpy as np
-from importlib import abc
 from numpy.linalg import eigh
 from openfermion import qubit_operator_sparse
 from openfermion.ops import QubitOperator
 from scipy.linalg import norm, expm, logm
+
 from gibbs_tket import Gibbs
 
 
@@ -137,7 +137,7 @@ def main_multiple_beta():
 		print()
 		for j, overlap in enumerate(overlaps):
 			print(f'Eigenvector {j} overlap: {overlap}')
-		# Save data
+		# Save data_h_0.5
 		data.append(dict(beta=beta, calculated_result=calculated_result, exact_result=exact_result, fidelity=fidelity,
 		                 trace_distance=trace_distance, relative_entropy=relative_entropy, overlaps=overlaps))
 	folder = f'{f"sampling_{shots}" if shots else "statevector"}_h_{h:.1f}/Gibbs_{n}'

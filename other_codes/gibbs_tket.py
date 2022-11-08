@@ -1,6 +1,6 @@
 import numpy as np
-from pytket.circuit import Circuit, Qubit, BasisOrder
-from pytket.extensions.qiskit import tk_to_qiskit, AerUnitaryBackend
+from pytket.circuit import Circuit, Qubit
+from pytket.extensions.qiskit import AerUnitaryBackend
 from pytket.extensions.qulacs import QulacsBackend
 from pytket.pauli import Pauli, QubitPauliString
 from pytket.utils.operators import QubitPauliOperator
@@ -284,7 +284,7 @@ class Gibbs:
 		return self.cost
 
 
-class GibbsResult:  # TODO: Fix eigenvector ordering
+class GibbsResult:
 	def __init__(self, gibbs):
 		self.result = gibbs.result
 		self.ancilla_unitary_params = gibbs.ancilla_params()
