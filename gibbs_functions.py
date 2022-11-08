@@ -4,8 +4,9 @@ from typing import Callable
 
 import numpy as np
 from numpy.linalg import eigh
-from openfermion import QubitOperator
-from openfermion.linalg import qubit_operator_sparse
+from qiskit.opflow import SummedOp
+from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.quantum_info import Pauli
 from qiskit_ibm_runtime import RuntimeEncoder
 from scipy.linalg import norm, logm, expm
 
@@ -51,29 +52,30 @@ def exact_gibbs_state(hamiltonian: list[list[complex]], beta: float) -> list[lis
 
 
 def ising_hamiltonian(n: int, J: float = 1., h: float = 0.5) -> list[list[complex]]:
-	hamiltonian = QubitOperator()
+	hamiltonian = []
 	for i in range(n):
 		# Interaction terms
 		if i != n - 1:
-			hamiltonian += QubitOperator(f'X{i} X{i + 1}', -J)
+			XX = 'I' * i + 'XX' + 'I' * (n - i - 2)
+			hamiltonian.append(PauliOp(Pauli(XX), -J))
 		elif n > 2:
-			hamiltonian += QubitOperator(f'X0 X{n - 1}', -J)
+			XX = 'X' + 'I' * (n - 2) + 'X'
+			hamiltonian.append(PauliOp(Pauli(XX), -J))
 		# Magnetic terms
-		hamiltonian += QubitOperator(f'Z{i}', -h)
+		Z = 'I' * i + 'Z' + 'I' * (n - i - 1)
+		hamiltonian.append(PauliOp(Pauli(Z), -h))
 
-	return hamiltonian
+	# Build up the Hamiltonian
+	return SummedOp(hamiltonian)
 
 
 def ising_hamiltonian_commuting_terms(n: int, J: float = 1., h: float = 0.5) -> dict:
 	terms = dict()
 	if J != 0:
-		terms.update(ising_even_odd=[-J, [[i, i + 1] for i in range(0, n - 1, 2)]])
-		if n > 2:
-			if n % 2 == 0:
-				terms.update(ising_odd_even=[-J, [[i, i + 1] for i in range(1, n - 2, 2)] + [[0, n - 1]]])
-			else:
-				terms.update(ising_odd_even=[-J, [[i, i + 1] for i in range(1, n - 2, 2)]])
-				terms.update(ising_closed=[-J, [[0, n - 1]]])
+		if n == 2:
+			terms.update(x=[-J, [[0, 1]]])
+		elif n > 2:
+			terms.update(x=[-J, [[i, (i + 1) % n] for i in range(n)]])
 	if h != 0:
 		terms.update(z=[-h, list(range(n))])
 
@@ -81,7 +83,7 @@ def ising_hamiltonian_commuting_terms(n: int, J: float = 1., h: float = 0.5) -> 
 
 
 def _exact_result(hamiltonian, beta):
-	hamiltonian_matrix = qubit_operator_sparse(hamiltonian).todense()
+	hamiltonian_matrix = hamiltonian.to_matrix()
 	gibbs_state = exact_gibbs_state(hamiltonian_matrix, beta)
 	energy = (gibbs_state @ hamiltonian_matrix).diagonal().sum().real
 	entropy = von_neumann_entropy(gibbs_state)
@@ -242,7 +244,126 @@ def print_results(results, output_folder=None):
 				)
 			)
 
-			with open(f'{output_folder}/{i}.json', 'w') as f:
+			with open(f'{output_folder}/{beta:.2f}.json', 'w') as f:
+				json.dump(data, f, indent=4, cls=ResultsEncoder)
+
+
+def print_multiple_results(multiple_results, output_folder=None, job_id=None, backend=None):
+	if not isinstance(multiple_results, list):
+		multiple_results = [multiple_results]
+	if output_folder:
+		os.makedirs(f'{output_folder}', exist_ok=True)
+	for results in multiple_results:
+		n = None
+		J = None
+		h = None
+		beta = None
+		hamiltonian = None
+		ancilla_reps = None
+		system_reps = None
+		optimizer = None
+		min_kwargs = None
+		shots = None
+		ep = None
+		cf_list = []
+		ctd_list = []
+		cre_list = []
+		cp_list = []
+		nf_list = []
+		ntd_list = []
+		nre_list = []
+		np_list = []
+		for i, result in enumerate(results):
+			if i == 0:
+				n = result['n']
+				J = result['J']
+				h = result['h']
+				beta = result['beta']
+				hamiltonian = ising_hamiltonian(n, J, h)
+				ancilla_reps = result.get('ancilla_reps')
+				optimizer = result.get('optimizer')
+				min_kwargs = result.get('min_kwargs')
+				shots = result.get('shots')
+			# get calculated results
+			calculated_result = _gibbs_result(result)
+			# Calculate exact results
+			exact_result = _exact_result(hamiltonian, beta)
+			# Calculate comparative results
+			if i == 0:
+				ep = purity(exact_result['gibbs_state'])
+			cf_list.append(fidelity(exact_result['gibbs_state'], calculated_result['rho']))
+			ctd_list.append(trace_distance(exact_result['gibbs_state'], calculated_result['rho']))
+			cre_list.append(relative_entropy(exact_result['gibbs_state'], calculated_result['rho']))
+			cp_list.append(purity(calculated_result['rho']))
+			nf_list.append(fidelity(exact_result['gibbs_state'], calculated_result['noiseless_rho']))
+			ntd_list.append(trace_distance(exact_result['gibbs_state'], calculated_result['noiseless_rho']))
+			nre_list.append(relative_entropy(exact_result['gibbs_state'], calculated_result['noiseless_rho']))
+			np_list.append(purity(calculated_result['noiseless_rho']))
+		# Print results
+		print()
+		print(f"n: {n}")
+		print(f"J: {J}")
+		print(f"h: {h}")
+		print(f"beta: {beta}")
+		print()
+		print(f"Exact Purity: {np.min(ep)}")
+		print()
+		print(f"Calculated Fidelity min: {np.min(cf_list)}")
+		print(f"Calculated Fidelity avg: {np.average(cf_list)}")
+		print(f"Calculated Fidelity max: {np.max(cf_list)}")
+		print(f"Calculated Trace Distance min: {np.min(ctd_list)}")
+		print(f"Calculated Trace Distance avg: {np.average(ctd_list)}")
+		print(f"Calculated Trace Distance max: {np.max(ctd_list)}")
+		print(f"Calculated Relative Entropy min: {np.min(cre_list)}")
+		print(f"Calculated Relative Entropy avg: {np.average(cre_list)}")
+		print(f"Calculated Relative Entropy max: {np.max(cre_list)}")
+		print(f"Calculated Purity min: {np.min(cp_list)}")
+		print(f"Calculated Purity min: {np.average(cp_list)}")
+		print(f"Calculated Purity min: {np.max(cp_list)}")
+		print()
+		print(f"Noiseless Fidelity min: {np.min(nf_list)}")
+		print(f"Noiseless Fidelity avg: {np.average(nf_list)}")
+		print(f"Noiseless Fidelity max: {np.max(nf_list)}")
+		print(f"Noiseless Trace Distance min: {np.min(ntd_list)}")
+		print(f"Noiseless Trace Distance avg: {np.average(ntd_list)}")
+		print(f"Noiseless Trace Distance max: {np.max(ntd_list)}")
+		print(f"Noiseless Relative Entropy min: {np.min(nre_list)}")
+		print(f"Noiseless Relative Entropy avg: {np.average(nre_list)}")
+		print(f"Noiseless Relative Entropy max: {np.max(nre_list)}")
+		print(f"Noiseless Purity min: {np.min(np_list)}")
+		print(f"Noiseless Purity avg: {np.average(np_list)}")
+		print(f"Noiseless Purity max: {np.max(np_list)}")
+		print()
+
+		if output_folder:
+			data = dict(
+				metadata=dict(
+					job_id=job_id,
+					backend=backend,
+					n=n,
+					J=J,
+					h=h,
+					beta=beta,
+					ancilla_reps=ancilla_reps,
+					system_reps=system_reps,
+					optimizer=optimizer,
+					min_kwargs=min_kwargs,
+					shots=shots,
+				),
+				metrics=dict(
+					exact_purity=ep,
+					calculated_fidelity=cf_list,
+					calculated_trace_distance=ctd_list,
+					calculated_relative_entropy=cre_list,
+					calculated_purity=cp_list,
+					noiseless_fidelity=nf_list,
+					noiseless_trace_distance=ntd_list,
+					noiseless_relative_entropy=nre_list,
+					noiseless_purity=np_list,
+				)
+			)
+
+			with open(f'{output_folder}/{beta:.2f}.json', 'w') as f:
 				json.dump(data, f, indent=4, cls=ResultsEncoder)
 
 
