@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Callable
+from typing import List, Callable
 
 import numpy as np
 from numpy.linalg import eigh
@@ -13,7 +13,7 @@ from scipy.linalg import norm, logm, expm
 from qulacs import ParametricQuantumCircuit
 
 
-def funm_psd(A: list[list[complex]], func: Callable[[list[list[complex]]], complex]) -> list[list[complex]]:
+def funm_psd(A: List[List[complex]], func: Callable[[List[List[complex]]], complex]) -> List[List[complex]]:
 	A = np.asarray(A)
 	if len(A.shape) != 2:
 		raise ValueError("Non-matrix input to matrix function.")
@@ -22,36 +22,36 @@ def funm_psd(A: list[list[complex]], func: Callable[[list[list[complex]]], compl
 	return (v * func(w)).dot(v.conj().T)
 
 
-def trace_distance(rho: list[list[complex]], sigma: list[list[complex]]) -> float:
+def trace_distance(rho: List[List[complex]], sigma: List[List[complex]]) -> float:
 	return norm(np.asarray(rho) - np.asarray(sigma), 1) / 2
 
 
-def fidelity(rho: list[list[complex]], sigma: list[list[complex]]) -> float:
+def fidelity(rho: List[List[complex]], sigma: List[List[complex]]) -> float:
 	sqrt_rho = funm_psd(np.asarray(rho), np.sqrt)
 	return funm_psd(sqrt_rho @ np.asarray(sigma) @ sqrt_rho, np.sqrt).diagonal().sum().real ** 2
 
 
-def relative_entropy(rho: list[list[complex]], sigma: list[list[complex]]) -> float:
+def relative_entropy(rho: List[List[complex]], sigma: List[List[complex]]) -> float:
 	rho = np.asarray(rho)
 	sigma = np.asarray(sigma)
 	return (rho @ (logm(rho) - logm(sigma))).diagonal().sum().real
 
 
-def purity(rho: list[list[complex]]) -> float:
+def purity(rho: List[List[complex]]) -> float:
 	rho = np.asarray(rho)
 	return (rho @ rho).diagonal().sum().real
 
 
-def von_neumann_entropy(rho: list[list[complex]]) -> float:
+def von_neumann_entropy(rho: List[List[complex]]) -> float:
 	return -np.sum([0 if i <= 0 else i * np.log(i) for i in np.linalg.eigh(rho)[0]])
 
 
-def exact_gibbs_state(hamiltonian: list[list[complex]], beta: float) -> list[list[float]]:
+def exact_gibbs_state(hamiltonian: List[List[complex]], beta: float) -> List[List[float]]:
 	rho = expm(-beta * hamiltonian).real
 	return rho / rho.diagonal().sum()
 
 
-def ising_hamiltonian(n: int, J: float = 1., h: float = 0.5) -> list[list[complex]]:
+def ising_hamiltonian(n: int, J: float = 1., h: float = 0.5) -> List[List[complex]]:
 	hamiltonian = []
 	for i in range(n):
 		# Interaction terms

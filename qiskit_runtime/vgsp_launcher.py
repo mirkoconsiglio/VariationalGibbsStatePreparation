@@ -33,7 +33,7 @@ def main():
 	results = job.result()
 	# Print and save results
 	folder = f'jobs/{backend_name}/n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
-	print_multiple_results(results, output_folder=folder, job_id=job_id)
+	print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name)
 
 	plot_result_min_avg_max(folder)
 
