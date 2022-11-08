@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "n": 2,
+    "J": 1.0,
+    "h": 0.5,
+    "beta": 5.0,
+    "ancilla_reps": 1,
+    "system_reps": null,
+    "optimizer": "function",
+    "min_kwargs": {
+      "initial_temp": 10.0,
+      "visit": 2,
+      "accept": -10.0,
+      "maxfun": 1000,
+      "no_local_search": true,
+      "restart_temp_ratio": 1e-10
+    },
+    "shots": 1024
+  },
+  "metrics": {
+    "exact_purity": 0.8011706484791081,
+    "calculated_fidelity": [
+      0.9984384252462744
+    ],
+    "calculated_trace_distance": [
+      0.07103532749082296
+    ],
+    "calculated_relative_entropy": [
+      0.0376031830321075
+    ],
+    "calculated_purity": [
+      0.9666624069213867
+    ],
+    "noiseless_fidelity": [
+      0.9652237574075229
+    ],
+    "noiseless_trace_distance": [
+      0.044999418236499056
+    ],
+    "noiseless_relative_entropy": [
+      0.0802406099201851
+    ],
+    "noiseless_purity": [
+      0.9285464229420634
+    ]
+  }
+}

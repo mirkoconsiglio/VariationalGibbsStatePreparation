@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "n": 2,
+    "J": 1.0,
+    "h": 0.5,
+    "beta": 1.2,
+    "ancilla_reps": 1,
+    "system_reps": null,
+    "optimizer": "SNOBFIT",
+    "min_kwargs": {},
+    "shots": 1024
+  },
+  "metrics": {
+    "exact_purity": 0.47715088918704646,
+    "calculated_fidelity": [
+      0.9187606450351893
+    ],
+    "calculated_trace_distance": [
+      0.1288519364704467
+    ],
+    "calculated_relative_entropy": [
+      0.20860939070016482
+    ],
+    "calculated_purity": [
+      0.628169059753418
+    ],
+    "noiseless_fidelity": [
+      0.8938930277419062
+    ],
+    "noiseless_trace_distance": [
+      0.11268129192726917
+    ],
+    "noiseless_relative_entropy": [
+      1.6144983269151143
+    ],
+    "noiseless_purity": [
+      0.615645649650758
+    ]
+  }
+}

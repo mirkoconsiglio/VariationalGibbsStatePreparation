@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "n": 2,
+    "J": 1.0,
+    "h": 0.5,
+    "beta": 1e-10,
+    "ancilla_reps": 1,
+    "system_reps": null,
+    "optimizer": "function",
+    "min_kwargs": {
+      "n_calls": 100,
+      "n_initial_points": 25,
+      "acq_func": "EI",
+      "n_restarts_optimizer": 10,
+      "noise": 0.0009765625,
+      "n_jobs": -1
+    },
+    "shots": 1024
+  },
+  "metrics": {
+    "exact_purity": 0.25,
+    "calculated_fidelity": [
+      0.9936623240035856
+    ],
+    "calculated_trace_distance": [
+      0.04410865417654105
+    ],
+    "calculated_relative_entropy": [
+      0.012767732258598015
+    ],
+    "calculated_purity": [
+      0.2563056945800781
+    ],
+    "noiseless_fidelity": [
+      0.9980032687298865
+    ],
+    "noiseless_trace_distance": [
+      0.021353637357309455
+    ],
+    "noiseless_relative_entropy": [
+      0.004000095945294806
+    ],
+    "noiseless_purity": [
+      0.2519974833394788
+    ]
+  }
+}
