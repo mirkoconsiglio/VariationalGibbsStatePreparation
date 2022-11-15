@@ -137,7 +137,7 @@ class GibbsIsing:
 		self.hamiltonian_eigenvalues = None
 		self.noiseless_hamiltonian_eigenvalues = None
 
-		self.user_messenger.publish(f"Initialized GibbsIsing Object with n={self.n}, J={self.J}, h={self.h}, "
+		self.user_messenger.publish(f"Initialized GibbsIsing object with n={self.n}, J={self.J}, h={self.h}, "
 		                            f"beta={self.beta}")
 
 	def run(self, x0: List[float] = None) -> dict:
@@ -396,20 +396,14 @@ class GibbsIsing:
 		:param q1: qubit 1
 		:param q2: qubit 2
 		"""
-		qc.sx(q1)
-		qc.sx(q2)
-		qc.rz(3 * np.pi / 2, q1)
+		qc.h([q1, q2])
 		qc.cx(q1, q2)
-		qc.rz(next(self.theta), q2)
-		qc.sx(q1)
-		qc.sx(q2)
-		qc.rz(next(self.theta), q1)
-		qc.rz(np.pi, q2)
-		qc.sx(q1)
-		qc.rz(np.pi / 2, q1)
+		qc.ry(next(self.theta), q2)
 		qc.cx(q1, q2)
-		qc.sx(q1)
-		qc.rz(np.pi / 2, q2)
+		qc.cx(q2, q1)
+		qc.ry(next(self.theta), q1)
+		qc.cx(q2, q1)
+		qc.h([q1, q2])
 
 	# noinspection PyUnusedLocal
 	def callback(self, *args, **kwargs) -> None:
@@ -512,6 +506,7 @@ def main(
 	for b in beta:
 		results = []
 		for i in range(N):
+			user_messenger.publish(f"Beta: {b}, run: {i}")
 			gibbs = GibbsIsing(backend, user_messenger, n, J, h, b, ancilla_reps, system_reps, optimizer, min_kwargs,
 			                   shots, skip_transpilation, use_measurement_mitigation, noise_model)
 			result = gibbs.run(x0)
