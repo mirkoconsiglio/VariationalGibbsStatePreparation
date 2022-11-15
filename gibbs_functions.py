@@ -149,9 +149,9 @@ def print_results(results, output_folder=None):
 	if output_folder:
 		os.makedirs(f'{output_folder}', exist_ok=True)
 	for i, result in enumerate(results):
-		n = result['n']
-		J = result['J']
-		h = result['h']
+		n = result.get('n')
+		J = result.get('J')
+		h = result.get('h')
 		beta = result['beta']
 		hamiltonian = ising_hamiltonian(n, J, h)
 		# get calculated results
@@ -275,10 +275,10 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		np_list = []
 		for i, result in enumerate(results):
 			if i == 0:
-				n = result['n']
-				J = result['J']
-				h = result['h']
-				beta = result['beta']
+				n = result.get('n')
+				J = result.get('J')
+				h = result.get('h')
+				beta = result.get('beta')
 				hamiltonian = ising_hamiltonian(n, J, h)
 				ancilla_reps = result.get('ancilla_reps')
 				optimizer = result.get('optimizer')
