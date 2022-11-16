@@ -479,25 +479,24 @@ def main(
 		noise_model=None
 ):
 	"""
-	Entrypoint for our qiskit_runtime Program
-	:param backend: ProgramBackend
-	:param user_messenger: UserMessenger
-	:param n: number of qubits
-	:param J: XX coefficient
-	:param h: Z coefficient
-	:param beta: inverse temperature beta (can be list), default is [1e-10, 0.2, 0.5, 0.8, 1., 1.2, 2., 3., 4., 5.].
-		Warning: do not set to 0.
-	:param N: repeated number of runs
-	:param ancilla_reps: number of ancilla PQC repetitions (layers), default 1.
-	:param system_reps: number of system PQC repetitions (layers), default n - 1.
+	Entrypoint for our qiskit_runtime Program.
+	:param backend: ProgramBackend.
+	:param user_messenger: UserMessenger.
+	:param n: number of qubits.
+	:param J: XX coefficient.
+	:param h: Z coefficient.
+	:param beta: inverse temperature beta (can be list), default is 1. Warning: do not set to 0, set at least 1e-10.
+	:param N: repeated number of runs for each beta.
+	:param ancilla_reps: number of ancilla PQC repetitions (layers), default is 1.
+	:param system_reps: number of system PQC repetitions (layers), default is n - 1.
 	:param x0: list of initial parameters, default is uniform random.
-	:param optimizer: Qiskit optimizer as a string, default is SPSA
-	:param min_kwargs: kwargs for the optimizer
-	:param shots: number of shots for each circuit evaluation
-	:param skip_transpilation: whether to skip circuit transpilation or not
-	:param use_measurement_mitigation: whether to use measurement mitigation or not
-	:param noise_model: optional noise model
-	:return: list of dictionaries containing results
+	:param optimizer: Qiskit optimizer as a string, default is SPSA.
+	:param min_kwargs: kwargs for the optimizer.
+	:param shots: number of shots for each circuit evaluation.
+	:param skip_transpilation: whether to skip circuit transpilation or not.
+	:param use_measurement_mitigation: whether to use measurement mitigation or not.
+	:param noise_model: optional noise model.
+	:return: list of dictionaries containing results.
 	"""
 	user_messenger.publish("Starting program")
 	if not isinstance(beta, list):
