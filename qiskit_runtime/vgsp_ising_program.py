@@ -8,7 +8,6 @@ from mthree.utils import final_measurement_mapping
 from qiskit import QuantumCircuit, transpile, Aer, IBMQ
 from qiskit.algorithms import optimizers
 from qiskit.circuit import Parameter
-from qiskit.providers.ibmq import IBMQAccountCredentialsNotFound
 from qiskit.quantum_info import Statevector, partial_trace
 from qiskit_aer.noise import NoiseModel
 from qiskit_experiments.library import StateTomography
@@ -104,18 +103,31 @@ class GibbsIsing:
 		# Setup backend
 		self.backend = backend
 		# Noise model
-		if noise_model:
+		if isinstance(noise_model, str):
+			self.noise_model_backend_name = noise_model
+			self.noise_model_backend = provider.get_backend(self.noise_model_backend_name)
+			self.noise_model = NoiseModel.from_backend(self.noise_model_backend)
+			self.backend.set_options(noise_model=self.noise_model)
+		elif isinstance(noise_model, dict):
+			self.noise_model_backend_name = None
+			self.noise_model_backend = None
 			# noinspection PyDeprecation
 			self.noise_model = NoiseModel.from_dict(noise_model)
 			self.backend.set_options(noise_model=self.noise_model)
 		else:
+			self.noise_model_backend_name = None
+			self.noise_model_backend = None
 			self.noise_model = None
 		# User messenger
 		self.user_messenger = user_messenger
 		# Transpilation
 		self.transpilation_options = dict(optimization_level=3, layout_method='sabre', routing_method='sabre')
 		if not self.skip_transpilation:
-			self.pauli_circuits = transpile(self.pauli_circuits, self.backend, **self.transpilation_options)
+			if self.noise_model_backend:
+				self.pauli_circuits = transpile(self.pauli_circuits, self.noise_model_backend,
+												**self.transpilation_options)
+			else:
+				self.pauli_circuits = transpile(self.pauli_circuits, self.backend, **self.transpilation_options)
 		# Error mitigation
 		if self.use_measurement_mitigation:
 			self.mappings = final_measurement_mapping(self.pauli_circuits)
@@ -204,6 +216,8 @@ class GibbsIsing:
 			optimizer=self.optimizer.__class__.__name__,
 			min_kwargs=self.min_kwargs,
 			shots=self.shots,
+			noise_model_backend=self.noise_model_backend_name,
+			noise_model=self.noise_model.to_dict(),
 			backend=self.backend.name
 		)
 		# Publish data
@@ -465,32 +479,56 @@ class GibbsIsing:
 
 
 def main(
-		backend=Aer.get_backend('aer_simulator'),
-		user_messenger=UserMessenger(),
-		n=2,
-		J=1.,
-		h=0.5,
-		beta=1.,
-		N=1,
-		ancilla_reps=None,
-		system_reps=None,
-		x0=None,
-		optimizer=None,
-		min_kwargs=None,
-		shots=1024,
-		skip_transpilation=False,
-		use_measurement_mitigation=False,
-		noise_model=None
+	backend=Aer.get_backend('aer_simulator'),
+	user_messenger=UserMessenger(),
+	n=2,
+	J=1.,
+	h=0.5,
+	beta=1.,
+	N=1,
+	ancilla_reps=None,
+	system_reps=None,
+	x0=None,
+	optimizer=None,
+	min_kwargs=None,
+	shots=1024,
+	skip_transpilation=False,
+	use_measurement_mitigation=False,
+	noise_model=None,
+	credentials=None
 ):
 	if not isinstance(beta, list):
 		beta = [beta]
+	if isinstance(noise_model, str):
+		if credentials:  # If running on IBM cloud
+			provider = IBMQ.enable_account(**credentials)
+		else:  # If testing through test_qiskit_program.py locally
+			provider = IBMQ.load_account()
+	else:
+		provider = None
+	# Start program
 	multiple_results = []
 	for b in beta:
 		results = []
 		for i in range(N):
-			user_messenger.publish(f"Beta: {b}, run: {i}")
-			gibbs = GibbsIsing(backend, user_messenger, n, J, h, b, ancilla_reps, system_reps, optimizer, min_kwargs,
-			                   shots, skip_transpilation, use_measurement_mitigation, noise_model)
+			gibbs = GibbsIsing(
+				backend=backend,
+				user_messenger=user_messenger,
+				n=n,
+				J=J,
+				h=h,
+				beta=b,
+				ancilla_reps=ancilla_reps,
+				system_reps=system_reps,
+				optimizer=optimizer,
+				min_kwargs=min_kwargs,
+				shots=shots,
+				skip_transpilation=skip_transpilation,
+				use_measurement_mitigation=use_measurement_mitigation,
+				noise_model=noise_model,
+				provider=provider,
+				N=i
+			)
 			result = gibbs.run(x0)
 			
 			results.append(result)
