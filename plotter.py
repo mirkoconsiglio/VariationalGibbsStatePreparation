@@ -238,14 +238,14 @@ def plot_multiple_results_max(directory):
 	plt.show()
 
 
-def plot_result_min_avg_max(folder):
+def plot_result_min_avg_max(folder, show=True):
 	fig, ax = plt.subplots(figsize=(12, 8))
 	ax.set_xscale('function', functions=(forward, reverse))
 	ax.set_xlabel(r'$\beta$')
 	ax.set_ylabel(r'$F$')
 	ax.set_xlim(-0.02, 5.3)
 	ax.grid(visible=True, which='both', axis='both')
-
+	
 	beta = []
 	min_fidelity = []
 	avg_fidelity = []
@@ -260,16 +260,17 @@ def plot_result_min_avg_max(folder):
 		min_fidelity.append(np.min(fidelity))
 		avg_fidelity.append(np.average(fidelity))
 		max_fidelity.append(np.max(fidelity))
-
+	
 	ax.scatter(beta, min_fidelity, label=f'minimum')
 	ax.scatter(beta, avg_fidelity, label=f'average')
 	ax.scatter(beta, max_fidelity, label=f'maximum')
-
+	
 	ax.legend()
-
+	
 	fig.savefig(f'{folder}/fidelity_plot.pdf', dpi=600, transparent=True)
-
-	plt.show()
+	
+	if show:
+		plt.show()
 
 
 if __name__ == '__main__':
