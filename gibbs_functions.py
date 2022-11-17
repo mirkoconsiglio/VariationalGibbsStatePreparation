@@ -1,6 +1,5 @@
 import json
 import os
-from typing import List, Callable
 
 import numpy as np
 from numpy.linalg import eigh
@@ -13,7 +12,7 @@ from scipy.linalg import norm, logm, expm
 from qulacs import ParametricQuantumCircuit
 
 
-def funm_psd(A: List[List[complex]], func: Callable[[List[List[complex]]], complex]) -> List[List[complex]]:
+def funm_psd(A, func):
 	A = np.asarray(A)
 	if len(A.shape) != 2:
 		raise ValueError("Non-matrix input to matrix function.")
@@ -22,36 +21,36 @@ def funm_psd(A: List[List[complex]], func: Callable[[List[List[complex]]], compl
 	return (v * func(w)).dot(v.conj().T)
 
 
-def trace_distance(rho: List[List[complex]], sigma: List[List[complex]]) -> float:
+def trace_distance(rho, sigma):
 	return norm(np.asarray(rho) - np.asarray(sigma), 1) / 2
 
 
-def fidelity(rho: List[List[complex]], sigma: List[List[complex]]) -> float:
+def fidelity(rho, sigma):
 	sqrt_rho = funm_psd(np.asarray(rho), np.sqrt)
 	return funm_psd(sqrt_rho @ np.asarray(sigma) @ sqrt_rho, np.sqrt).diagonal().sum().real ** 2
 
 
-def relative_entropy(rho: List[List[complex]], sigma: List[List[complex]]) -> float:
+def relative_entropy(rho, sigma):
 	rho = np.asarray(rho)
 	sigma = np.asarray(sigma)
 	return (rho @ (logm(rho) - logm(sigma))).diagonal().sum().real
 
 
-def purity(rho: List[List[complex]]) -> float:
+def purity(rho):
 	rho = np.asarray(rho)
 	return (rho @ rho).diagonal().sum().real
 
 
-def von_neumann_entropy(rho: List[List[complex]]) -> float:
+def von_neumann_entropy(rho):
 	return -np.sum([0 if i <= 0 else i * np.log(i) for i in np.linalg.eigh(rho)[0]])
 
 
-def exact_gibbs_state(hamiltonian: List[List[complex]], beta: float) -> List[List[float]]:
+def exact_gibbs_state(hamiltonian, beta):
 	rho = expm(-beta * hamiltonian).real
 	return rho / rho.diagonal().sum()
 
 
-def ising_hamiltonian(n: int, J: float = 1., h: float = 0.5) -> List[List[complex]]:
+def ising_hamiltonian(n, J=1., h=0.5):
 	hamiltonian = []
 	for i in range(n):
 		# Interaction terms
@@ -144,6 +143,8 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		optimizer = result.get('optimizer')
 		min_kwargs = result.get('min_kwargs')
 		shots = result.get('shots')
+		noise_model_backend = result.get('noise_model_backend')
+		noise_model = result.get('noise_model')
 		exact_result = analytical_result(hamiltonian, beta)
 		ep = purity(exact_result['gibbs_state'])
 		# load data if append is True
@@ -223,6 +224,17 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 
 		if output_folder:
 			data = dict(
+				metrics=dict(
+					exact_purity=ep,
+					calculated_fidelity=cf_list,
+					calculated_trace_distance=ctd_list,
+					calculated_relative_entropy=cre_list,
+					calculated_purity=cp_list,
+					noiseless_fidelity=nf_list,
+					noiseless_trace_distance=ntd_list,
+					noiseless_relative_entropy=nre_list,
+					noiseless_purity=np_list
+				),
 				metadata=dict(
 					job_ids=job_ids,
 					backends=backends,
@@ -235,17 +247,8 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 					optimizer=optimizer,
 					min_kwargs=min_kwargs,
 					shots=shots,
-				),
-				metrics=dict(
-					exact_purity=ep,
-					calculated_fidelity=cf_list,
-					calculated_trace_distance=ctd_list,
-					calculated_relative_entropy=cre_list,
-					calculated_purity=cp_list,
-					noiseless_fidelity=nf_list,
-					noiseless_trace_distance=ntd_list,
-					noiseless_relative_entropy=nre_list,
-					noiseless_purity=np_list,
+					noise_model_backend=noise_model_backend,
+					noise_model=noise_model
 				)
 			)
 

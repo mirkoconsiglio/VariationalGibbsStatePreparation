@@ -1,18 +1,18 @@
 import inspect
 from collections import Counter
-from typing import List, Tuple, Optional
 
 import numpy as np
 from mthree import M3Mitigation
 from mthree.classes import QuasiCollection, QuasiDistribution
 from mthree.utils import final_measurement_mapping
-from qiskit import QuantumCircuit, transpile, Aer
+from qiskit import QuantumCircuit, transpile, Aer, IBMQ
 from qiskit.algorithms import optimizers
 from qiskit.circuit import Parameter
+from qiskit.providers.ibmq import IBMQAccountCredentialsNotFound
 from qiskit.quantum_info import Statevector, partial_trace
 from qiskit_aer.noise import NoiseModel
 from qiskit_experiments.library import StateTomography
-from qiskit_ibm_runtime.program import UserMessenger, ProgramBackend
+from qiskit_ibm_runtime.program import UserMessenger
 from scipy.special import xlogy
 
 _optimizers = dict(inspect.getmembers(optimizers, inspect.isclass))
@@ -20,38 +20,43 @@ _optimizers = dict(inspect.getmembers(optimizers, inspect.isclass))
 
 class GibbsIsing:
 	def __init__(
-			self,
-			backend: ProgramBackend,
-			user_messenger: UserMessenger,
-			n: int = 2,
-			J: float = 1.,
-			h: float = 0.5,
-			beta: float = 1.,
-			ancilla_reps: Optional[int] = None,
-			system_reps: Optional[int] = None,
-			optimizer: Optional[str] = None,
-			min_kwargs: Optional[dict] = None,
-			shots: int = 1024,
-			skip_transpilation: bool = False,
-			use_measurement_mitigation: bool = False,
-			noise_model: Optional[NoiseModel] = None
-	) -> None:
+		self,
+		backend=Aer.get_backend('aer_simulator'),
+		user_messenger=UserMessenger(),
+		n=2,
+		J=1.,
+		h=0.5,
+		beta=1.,
+		ancilla_reps=None,
+		system_reps=None,
+		optimizer=None,
+		min_kwargs=None,
+		shots=1024,
+		skip_transpilation=False,
+		use_measurement_mitigation=False,
+		noise_model=None,
+		provider=None,
+		**kwargs
+	):
 		"""
 		Class constructor
-		:param backend: ProgramBackend
-		:param user_messenger: UserMessenger
-		:param n: number of qubits
-		:param J: XX coefficient
-		:param h: Z coefficient
-		:param beta: inverse temperature beta
-		:param ancilla_reps: number of ancilla PQC repetitions (layers)
-		:param system_reps: number of system PQC repetitions (layers)
-		:param optimizer: Qiskit optimizer as a string
-		:param min_kwargs: kwargs for the optimizer
-		:param shots: number of shots for each circuit evaluation
-		:param skip_transpilation: whether to skip circuit transpilation or not
-		:param use_measurement_mitigation: whether to use measurement mitigation or not
-		:param noise_model: optional noise model
+		:param backend: ProgramBackend.
+		:param user_messenger: UserMessenger.
+		:param n: number of qubits.
+		:param J: XX coefficient.
+		:param h: Z coefficient.
+		:param beta: inverse temperature beta.
+		:param ancilla_reps: number of ancilla PQC repetitions (layers), defaults to 1.
+		:param system_reps: number of system PQC repetitions (layers), defaults to n - 1.
+		:param optimizer: Qiskit optimizer as a string, defaults to SPSA.
+		:param min_kwargs: kwargs for the optimizer.
+		:param shots: number of shots for each circuit evaluation.
+		:param skip_transpilation: whether to skip circuit transpilation or not.
+		:param use_measurement_mitigation: whether to use measurement mitigation or not.
+		:param noise_model: optional noise model: when a string get noise model of backend;
+		 or else directly supply noise model dictionary.
+		:param provider: supplied by the program when credentials are supplied.
+		:param kwargs: extra kwargs.
 		"""
 		# Hamiltonian and cost function setup
 		self.n = n
@@ -136,11 +141,11 @@ class GibbsIsing:
 		self.noiseless_eigenvalues = None
 		self.hamiltonian_eigenvalues = None
 		self.noiseless_hamiltonian_eigenvalues = None
-
+		
 		self.user_messenger.publish(f"Initialized GibbsIsing object with n={self.n}, J={self.J}, h={self.h}, "
-		                            f"beta={self.beta}")
-
-	def run(self, x0: List[float] = None) -> dict:
+									f"beta={self.beta}, run={kwargs.get('N')}")
+	
+	def run(self, x0=None):
 		"""
 		Main entry point of the class, to run the VQA
 		:param x0: list of initial parameters
@@ -168,7 +173,7 @@ class GibbsIsing:
 		self.noiseless_eigenvalues = np.sort(self.noiseless_sigma)
 		self.hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta * np.log(self.eigenvalues))
 		self.noiseless_hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta *
-		                                                 np.log(self.noiseless_eigenvalues))
+														 np.log(self.noiseless_eigenvalues))
 		self.user_messenger.publish("Post-processed results")
 		# Compile data
 		data = dict(
@@ -207,8 +212,8 @@ class GibbsIsing:
 		# return data
 		self.user_messenger.publish("Returning results")
 		return data
-
-	def cost_fun(self, x: List[float]) -> float:
+	
+	def cost_fun(self, x):
 		"""
 		Free energy cost function
 		:param x: list of parameters
@@ -225,7 +230,7 @@ class GibbsIsing:
 			results = self.mit.apply_correction(results, self.mappings)
 		else:
 			results = QuasiCollection([QuasiDistribution([(key, value / self.shots) for key, value in result.items()])
-			                           for result in results])
+									   for result in results])
 		# Post-process results
 		energy = 0
 		p = Counter()
@@ -250,11 +255,11 @@ class GibbsIsing:
 		self.eigenvalues = [i[1] for i in sorted(p.items())]  # Sort eigenvalues according to bit string
 		self.entropy = self.entropy_fun(self.eigenvalues)
 		self.cost = self.energy - self.inverse_beta * self.entropy
-
+		
 		return self.cost
-
+	
 	@staticmethod
-	def all_z_expectation(shot: str, n: int) -> int:
+	def all_z_expectation(shot, n):
 		"""
 		Expectation value of measuring the all-Z operator
 		:param shot: shot bit string
@@ -262,9 +267,9 @@ class GibbsIsing:
 		:return: expectation value
 		"""
 		return 2 * shot.count('0') - n
-
+	
 	@staticmethod
-	def xx_expectation(shot: str, q1: int, q2: int) -> int:
+	def xx_expectation(shot, q1, q2):
 		"""
 		Expectation of measuring XX
 		:param shot: shot bit string
@@ -273,24 +278,24 @@ class GibbsIsing:
 		:return: expectation value, 1 or -1
 		"""
 		return 1 if shot[q1] == shot[q2] else -1
-
+	
 	# Update list of probabilities given a count of bit strings
-	def probabilities(self, p: Counter, shot: str, n: int) -> None:
+	def probabilities(self, p, shot, n):
 		j = 0
 		for b in shot:
 			j = (j << 1) | int(b)
 		p.update({j: n / self.num_pauli_circuits})
-
+	
 	@staticmethod
-	def entropy_fun(p: Counter) -> float:
+	def entropy_fun(p):
 		"""
 		Compute the entropy given a list of probabilities
-		:param p:
+		:param p: Counter of probabilities
 		:return: entropy
 		"""
 		# noinspection PyCallingNonCallable
 		return -np.sum([xlogy(i, i) for i in p])
-
+	
 	@staticmethod
 	def theta_iter():
 		"""
@@ -300,8 +305,8 @@ class GibbsIsing:
 		while True:
 			yield Parameter(fr'$\theta_{n}$')
 			n += 1
-
-	def generate_ising_measurement_circuits(self) -> List[QuantumCircuit]:
+	
+	def generate_ising_measurement_circuits(self):
 		"""
 		Takes commuting terms and produces the circuits required to measure expectation values
 		:return: list of Pauli circuits with appended measurements
@@ -314,11 +319,11 @@ class GibbsIsing:
 					pauli_circ.h(q)
 			pauli_circ.measure_all()
 			pauli_circuits.append(pauli_circ)
-
+		
 		return pauli_circuits
-
+	
 	@staticmethod
-	def ising_hamiltonian_commuting_terms(n: int, J: float = 1., h: float = 0.5) -> dict:
+	def ising_hamiltonian_commuting_terms(n, J=1., h=0.5):
 		"""
 		Generate dictionary of ising hamiltonian commuting terms
 		:param n: number of qubits
@@ -334,10 +339,10 @@ class GibbsIsing:
 				terms.update(XX=[-J, [[i, (i + 1) % n] for i in range(n)]])
 		if h != 0:
 			terms.update(Z=[-h, [[i] for i in range(n)]])
-
+		
 		return terms
-
-	def var_ansatz(self, n: int) -> QuantumCircuit:
+	
+	def var_ansatz(self, n):
 		"""
         Generate the variational ansatz
 		:param n: number of qubits
@@ -350,10 +355,10 @@ class GibbsIsing:
 		for i in range(n):
 			qc.cx(i, i + n)
 		qc.append(US.to_instruction(), range(n, 2 * n))
-
+		
 		return qc
-
-	def ancilla_unitary(self, n: int) -> QuantumCircuit:
+	
+	def ancilla_unitary(self, n):
 		"""
 		Ancilla ansatz
 		:param n: number of qubits
@@ -365,31 +370,31 @@ class GibbsIsing:
 				qc.ry(next(self.theta), i)
 				if i > 0:
 					qc.cx(i - 1, i)
-
+		
 		# Last one-qubit layer
 		for i in range(n):
 			qc.ry(next(self.theta), i)
-
+		
 		return qc
-
-	def system_unitary(self, n: int) -> QuantumCircuit:
+	
+	def system_unitary(self, n):
 		"""
 		System ansatz
 		:param n: number of qubits
 		:return: system PQC
 		"""
 		qc = QuantumCircuit(n)
-
+		
 		for _ in range(self.system_reps):
 			for i in range(0, n - 1, 2):
 				self.add_ising_gate(qc, i, i + 1)
 			if n > 2:
 				for i in range(1, n, 2):
 					self.add_ising_gate(qc, i, (i + 1) % n)
-
+		
 		return qc
-
-	def add_ising_gate(self, qc: QuantumCircuit, q1: int, q2: int) -> None:
+	
+	def add_ising_gate(self, qc, q1, q2):
 		"""
 		Add transpiled RP = R_yx.R_xy gate to a circuit
 		:param qc: quantum circuit
@@ -404,9 +409,9 @@ class GibbsIsing:
 		qc.ry(next(self.theta), q1)
 		qc.cx(q2, q1)
 		qc.h([q1, q2])
-
+	
 	# noinspection PyUnusedLocal
-	def callback(self, *args, **kwargs) -> None:
+	def callback(self, *args, **kwargs):
 		"""
 		Callback function to save intermediary results
 		:param args: not used
@@ -427,8 +432,8 @@ class GibbsIsing:
 			eigenvalues=self.eigenvalues
 		)
 		self.user_messenger.publish(message)
-
-	def statevector_tomography(self) -> Tuple[List[List[complex]], List[float]]:
+	
+	def statevector_tomography(self):
 		"""
 		Perform statevector tomography
 		:return: density matrix rho of system qubits and diagonal matrix sigma of ancilla qubits
@@ -437,10 +442,10 @@ class GibbsIsing:
 		statevector = Statevector(circuit)
 		rho = partial_trace(statevector, self.ancilla_qubits).data
 		sigma = partial_trace(statevector, self.system_qubits).data.diagonal().real
-
+		
 		return rho, sigma
-
-	def sampled_tomography(self) -> Tuple[List[List[complex]], List[float]]:
+	
+	def sampled_tomography(self):
 		"""
 		Perform sampled tomography
 		:return: density matrix rho of system qubits and diagonal matrix sigma of ancilla qubits
@@ -455,11 +460,10 @@ class GibbsIsing:
 		sigma_qst.set_transpile_options(**self.transpilation_options)
 		sigma_data = sigma_qst.run(self.backend, shots=self.shots).block_for_results()
 		sigma = sigma_data.analysis_results('state').value.data.diagonal().real
-
+		
 		return rho, sigma
 
 
-# Don't annotate!!!
 def main(
 		backend=Aer.get_backend('aer_simulator'),
 		user_messenger=UserMessenger(),
@@ -478,27 +482,6 @@ def main(
 		use_measurement_mitigation=False,
 		noise_model=None
 ):
-	"""
-	Entrypoint for our qiskit_runtime Program.
-	:param backend: ProgramBackend.
-	:param user_messenger: UserMessenger.
-	:param n: number of qubits.
-	:param J: XX coefficient.
-	:param h: Z coefficient.
-	:param beta: inverse temperature beta (can be list), default is 1. Warning: do not set to 0, set at least 1e-10.
-	:param N: repeated number of runs for each beta.
-	:param ancilla_reps: number of ancilla PQC repetitions (layers), default is 1.
-	:param system_reps: number of system PQC repetitions (layers), default is n - 1.
-	:param x0: list of initial parameters, default is uniform random.
-	:param optimizer: Qiskit optimizer as a string, default is SPSA.
-	:param min_kwargs: kwargs for the optimizer.
-	:param shots: number of shots for each circuit evaluation.
-	:param skip_transpilation: whether to skip circuit transpilation or not.
-	:param use_measurement_mitigation: whether to use measurement mitigation or not.
-	:param noise_model: optional noise model.
-	:return: list of dictionaries containing results.
-	"""
-	user_messenger.publish("Starting program")
 	if not isinstance(beta, list):
 		beta = [beta]
 	multiple_results = []
@@ -509,10 +492,9 @@ def main(
 			gibbs = GibbsIsing(backend, user_messenger, n, J, h, b, ancilla_reps, system_reps, optimizer, min_kwargs,
 			                   shots, skip_transpilation, use_measurement_mitigation, noise_model)
 			result = gibbs.run(x0)
-
+			
 			results.append(result)
 		# Add to our results
 		multiple_results.append(results)
-
-	user_messenger.publish("Returning program results")
+	
 	return multiple_results
