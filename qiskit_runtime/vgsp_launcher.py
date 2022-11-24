@@ -6,10 +6,10 @@ from plotter import plot_result_min_avg_max
 
 
 def main():
-	n = 3
+	n = 4
 	J = 1.
 	h = 0.5
-	beta = [1e-10, 0.2, 0.5, 0.8, 1., 1.2, 2., 3., 4., 5.]
+	beta = [1e-10, 0.2, 0.5, 0.8, 1.2, 1., 2., 3., 4., 5.]
 	shots = 1024
 	N = 10  # Can be split manually into a list
 	split_betas = True  # Split each beta into a separate job with N runs each
@@ -42,7 +42,7 @@ def main():
 			# Run job
 			job = service.run(program_id, options=options, inputs=inputs)
 			job_id = job.job_id()
-			print(f"Job sent to {backend_name} with job ID: {job_id} for beta: {b}, run/s: {i}")
+			print(f"Job sent to {backend_name} with job ID: {job_id} for beta: {b}, runs: {i}")
 	# If only one job is sent, stream it
 	if len(beta) == 1 and len(N) == 1:
 		stream_results(job)
@@ -65,8 +65,8 @@ def stream_results(job):
 	folder = f'jobs/{backend_name}'
 	if isinstance(noise_model, str):
 		folder += f'_{noise_model}'
-	folder += f'n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
-	print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name)
+	folder += f'/n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
+	print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name, append=True)
 	
 	plot_result_min_avg_max(folder)
 
