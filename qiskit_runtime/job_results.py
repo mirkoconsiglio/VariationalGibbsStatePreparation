@@ -31,8 +31,8 @@ def main():
 	service = QiskitRuntimeService()
 	jobs = service.jobs(limit=10)
 	append = True  # Append results or overwrite
-	show = False  # Show plot after every job
 	# Put job ID here after it is finished to retrieve it
+	folders = set()
 	for job in jobs:
 		job_id = job.job_id()
 		backend_name = job.backend.name
@@ -40,7 +40,7 @@ def main():
 		J = job.inputs.get('J')
 		h = job.inputs.get('h')
 		shots = job.inputs.get('shots')
-		N = job.inputs.get('N')
+		noise_model = job.inputs.get('noise_model')
 		
 		# Get job results
 		try:
@@ -48,13 +48,18 @@ def main():
 		except (RuntimeJobFailureError, RuntimeJobMaxTimeoutError) as err:
 			print(err.message)
 			print("Since final results could not be retrieved, getting interim results instead.")
-			results = decode_interim_results(job.interim_results(), N)
+			results = decode_interim_results(job.interim_results(), job.inputs.get('N'))
 		
-		folder = f'jobs/{backend_name}/n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
+		folder = f'jobs/{backend_name}'
+		if isinstance(noise_model, str):
+			folder += f'_{noise_model}'
+		folder += f'/n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
+		folders.add(folder)
 		
 		print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name, append=append)
-		
-		plot_result_min_avg_max(folder, show=show)
+	
+	for folder in folders:
+		plot_result_min_avg_max(folder)
 
 
 if __name__ == '__main__':
