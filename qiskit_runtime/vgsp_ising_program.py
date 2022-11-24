@@ -32,7 +32,7 @@ class GibbsIsing:
 		min_kwargs=None,
 		shots=1024,
 		skip_transpilation=False,
-		use_measurement_mitigation=False,
+		use_measurement_mitigation=True,
 		noise_model=None,
 		provider=None,
 		**kwargs
@@ -50,8 +50,8 @@ class GibbsIsing:
 		:param optimizer: Qiskit optimizer as a string, defaults to SPSA.
 		:param min_kwargs: kwargs for the optimizer.
 		:param shots: number of shots for each circuit evaluation.
-		:param skip_transpilation: whether to skip circuit transpilation or not.
-		:param use_measurement_mitigation: whether to use measurement mitigation or not.
+		:param skip_transpilation: whether to skip circuit transpilation or not, default is False.
+		:param use_measurement_mitigation: whether to use measurement mitigation or not, default is True.
 		:param noise_model: optional noise model: when a string get noise model of backend;
 		 or else directly supply noise model dictionary.
 		:param provider: supplied by the program when credentials are supplied.
@@ -102,6 +102,7 @@ class GibbsIsing:
 		self.total_shots = self.shots * self.num_pauli_circuits
 		# Setup backend
 		self.backend = backend
+		self.backend_name = backend.name()
 		# Noise model
 		if isinstance(noise_model, str):
 			self.noise_model_backend_name = noise_model
@@ -154,8 +155,8 @@ class GibbsIsing:
 		self.hamiltonian_eigenvalues = None
 		self.noiseless_hamiltonian_eigenvalues = None
 		
-		self.user_messenger.publish(f"Initialized GibbsIsing object with n={self.n}, J={self.J}, h={self.h}, "
-									f"beta={self.beta}, run={kwargs.get('N')}")
+		self.publish(f"Initialized GibbsIsing object with n={self.n}, J={self.J}, h={self.h}, "
+					 f"beta={self.beta}, run={kwargs.get('N')}")
 	
 	def run(self, x0=None):
 		"""
@@ -170,9 +171,9 @@ class GibbsIsing:
 		else:
 			self.x0 = x0
 		# Start optimization
-		self.user_messenger.publish("Starting optimization")
+		self.publish("Starting optimization")
 		result = self.optimizer.minimize(fun=self.cost_fun, x0=self.x0, bounds=self.bounds)
-		self.user_messenger.publish("Finished optimization")
+		self.publish("Finished optimization")
 		# Compute cost function at the last parameters
 		self.params = result.x
 		self.cost_fun(self.params)
@@ -186,7 +187,7 @@ class GibbsIsing:
 		self.hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta * np.log(self.eigenvalues))
 		self.noiseless_hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta *
 														 np.log(self.noiseless_eigenvalues))
-		self.user_messenger.publish("Post-processed results")
+		self.publish("Post-processed results")
 		# Compile data
 		data = dict(
 			final=True,
@@ -221,11 +222,15 @@ class GibbsIsing:
 			backend=self.backend.name
 		)
 		# Publish data
-		self.user_messenger.publish("Publishing results")
-		self.user_messenger.publish(data)
+		self.publish("Publishing results")
+		self.publish(data)
 		# return data
-		self.user_messenger.publish("Returning results")
+		self.publish("Returning results")
 		return data
+	
+	def publish(self, data):
+		if self.backend_name != 'aer_simulator':
+			self.user_messenger.publish(data)
 	
 	def cost_fun(self, x):
 		"""
@@ -445,7 +450,7 @@ class GibbsIsing:
 			params=self.params,
 			eigenvalues=self.eigenvalues
 		)
-		self.user_messenger.publish(message)
+		self.publish(message)
 	
 	def statevector_tomography(self):
 		"""
@@ -493,7 +498,7 @@ def main(
 	min_kwargs=None,
 	shots=1024,
 	skip_transpilation=False,
-	use_measurement_mitigation=False,
+	use_measurement_mitigation=True,
 	noise_model=None,
 	credentials=None
 ):
