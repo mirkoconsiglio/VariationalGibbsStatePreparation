@@ -11,11 +11,11 @@ if __name__ == '__main__':
 	parser.add_argument('--beta', default=1., type=float, nargs='+')
 	parser.add_argument('--noise_model', default=None, type=str)
 	args = vars(parser.parse_args())
-	
+
 	results = main(**args)
-	
+
 	folder = 'test_job'
-	
+
 	print_multiple_results(results, output_folder=folder)
-	
+
 	plot_result_min_avg_max(folder, show=False)
