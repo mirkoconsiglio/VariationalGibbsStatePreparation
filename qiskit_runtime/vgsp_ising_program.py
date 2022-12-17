@@ -19,23 +19,23 @@ _optimizers = dict(inspect.getmembers(optimizers, inspect.isclass))
 
 class GibbsIsing:
 	def __init__(
-		self,
-		backend=Aer.get_backend('aer_simulator'),
-		user_messenger=UserMessenger(),
-		n=2,
-		J=1.,
-		h=0.5,
-		beta=1.,
-		ancilla_reps=None,
-		system_reps=None,
-		optimizer=None,
-		min_kwargs=None,
-		shots=1024,
-		skip_transpilation=False,
-		use_measurement_mitigation=True,
-		noise_model=None,
-		provider=None,
-		**kwargs
+			self,
+			backend=Aer.get_backend('aer_simulator'),
+			user_messenger=UserMessenger(),
+			n=2,
+			J=1.,
+			h=0.5,
+			beta=1.,
+			ancilla_reps=None,
+			system_reps=None,
+			optimizer=None,
+			min_kwargs=None,
+			shots=1024,
+			skip_transpilation=False,
+			use_measurement_mitigation=True,
+			noise_model=None,
+			provider=None,
+			**kwargs
 	):
 		"""
 		Class constructor
@@ -53,7 +53,7 @@ class GibbsIsing:
 		:param skip_transpilation: whether to skip circuit transpilation or not, default is False.
 		:param use_measurement_mitigation: whether to use measurement mitigation or not, default is True.
 		:param noise_model: optional noise model: when a string get noise model of backend;
-		 or else directly supply noise model dictionary.
+		or else directly supply noise model dictionary.
 		:param provider: supplied by the program when credentials are supplied.
 		:param kwargs: extra kwargs.
 		"""
@@ -126,7 +126,7 @@ class GibbsIsing:
 		if not self.skip_transpilation:
 			if self.noise_model_backend:
 				self.pauli_circuits = transpile(self.pauli_circuits, self.noise_model_backend,
-												**self.transpilation_options)
+				                                **self.transpilation_options)
 			else:
 				self.pauli_circuits = transpile(self.pauli_circuits, self.backend, **self.transpilation_options)
 		# Error mitigation
@@ -154,10 +154,10 @@ class GibbsIsing:
 		self.noiseless_eigenvalues = None
 		self.hamiltonian_eigenvalues = None
 		self.noiseless_hamiltonian_eigenvalues = None
-		
+
 		self.publish(f"Initialized GibbsIsing object with n={self.n}, J={self.J}, h={self.h}, "
-					 f"beta={self.beta}, run={kwargs.get('N')}")
-	
+		             f"beta={self.beta}, run={kwargs.get('N')}")
+
 	def run(self, x0=None):
 		"""
 		Main entry point of the class, to run the VQA
@@ -186,7 +186,7 @@ class GibbsIsing:
 		self.noiseless_eigenvalues = np.sort(self.noiseless_sigma)
 		self.hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta * np.log(self.eigenvalues))
 		self.noiseless_hamiltonian_eigenvalues = np.sort(self.cost - self.inverse_beta *
-														 np.log(self.noiseless_eigenvalues))
+		                                                 np.log(self.noiseless_eigenvalues))
 		self.publish("Post-processed results")
 		# Compile data
 		data = dict(
@@ -214,11 +214,12 @@ class GibbsIsing:
 			skip_transpilation=self.skip_transpilation,
 			use_measurement_mitigation=self.use_measurement_mitigation,
 			ansatz=self.ansatz,
+			pauli_circuits=self.pauli_circuits,
 			optimizer=self.optimizer.__class__.__name__,
 			min_kwargs=self.min_kwargs,
 			shots=self.shots,
 			noise_model_backend=self.noise_model_backend_name,
-			noise_model=self.noise_model.to_dict(),
+			noise_model=self.noise_model,
 			backend=self.backend.name
 		)
 		# Publish data
@@ -227,11 +228,11 @@ class GibbsIsing:
 		# return data
 		self.publish("Returning results")
 		return data
-	
+
 	def publish(self, data):
 		if self.backend_name != 'aer_simulator':
 			self.user_messenger.publish(data)
-	
+
 	def cost_fun(self, x):
 		"""
 		Free energy cost function
@@ -249,7 +250,7 @@ class GibbsIsing:
 			results = self.mit.apply_correction(results, self.mappings)
 		else:
 			results = QuasiCollection([QuasiDistribution([(key, value / self.shots) for key, value in result.items()])
-									   for result in results])
+			                           for result in results])
 		# Post-process results
 		energy = 0
 		p = Counter()
@@ -274,9 +275,9 @@ class GibbsIsing:
 		self.eigenvalues = [i[1] for i in sorted(p.items())]  # Sort eigenvalues according to bit string
 		self.entropy = self.entropy_fun(self.eigenvalues)
 		self.cost = self.energy - self.inverse_beta * self.entropy
-		
+
 		return self.cost
-	
+
 	@staticmethod
 	def all_z_expectation(shot, n):
 		"""
@@ -286,7 +287,7 @@ class GibbsIsing:
 		:return: expectation value
 		"""
 		return 2 * shot.count('0') - n
-	
+
 	@staticmethod
 	def xx_expectation(shot, q1, q2):
 		"""
@@ -297,14 +298,14 @@ class GibbsIsing:
 		:return: expectation value, 1 or -1
 		"""
 		return 1 if shot[q1] == shot[q2] else -1
-	
+
 	# Update list of probabilities given a count of bit strings
 	def probabilities(self, p, shot, n):
 		j = 0
 		for b in shot:
 			j = (j << 1) | int(b)
 		p.update({j: n / self.num_pauli_circuits})
-	
+
 	@staticmethod
 	def entropy_fun(p):
 		"""
@@ -314,7 +315,7 @@ class GibbsIsing:
 		"""
 		# noinspection PyCallingNonCallable
 		return -np.sum([xlogy(i, i) for i in p])
-	
+
 	@staticmethod
 	def theta_iter():
 		"""
@@ -324,7 +325,7 @@ class GibbsIsing:
 		while True:
 			yield Parameter(fr'$\theta_{n}$')
 			n += 1
-	
+
 	def generate_ising_measurement_circuits(self):
 		"""
 		Takes commuting terms and produces the circuits required to measure expectation values
@@ -338,9 +339,9 @@ class GibbsIsing:
 					pauli_circ.h(q)
 			pauli_circ.measure_all()
 			pauli_circuits.append(pauli_circ)
-		
+
 		return pauli_circuits
-	
+
 	@staticmethod
 	def ising_hamiltonian_commuting_terms(n, J=1., h=0.5):
 		"""
@@ -358,12 +359,12 @@ class GibbsIsing:
 				terms.update(XX=[-J, [[i, (i + 1) % n] for i in range(n)]])
 		if h != 0:
 			terms.update(Z=[-h, [[i] for i in range(n)]])
-		
+
 		return terms
-	
+
 	def var_ansatz(self, n):
 		"""
-        Generate the variational ansatz
+		Generate the variational ansatz
 		:param n: number of qubits
 		:return: returns the PQC
 		"""
@@ -374,9 +375,9 @@ class GibbsIsing:
 		for i in range(n):
 			qc.cx(i, i + n)
 		qc.append(US.to_instruction(), range(n, 2 * n))
-		
+
 		return qc
-	
+
 	def ancilla_unitary(self, n):
 		"""
 		Ancilla ansatz
@@ -389,13 +390,13 @@ class GibbsIsing:
 				qc.ry(next(self.theta), i)
 				if i > 0:
 					qc.cx(i - 1, i)
-		
+
 		# Last one-qubit layer
 		for i in range(n):
 			qc.ry(next(self.theta), i)
-		
+
 		return qc
-	
+
 	def system_unitary(self, n):
 		"""
 		System ansatz
@@ -403,16 +404,16 @@ class GibbsIsing:
 		:return: system PQC
 		"""
 		qc = QuantumCircuit(n)
-		
+
 		for _ in range(self.system_reps):
 			for i in range(0, n - 1, 2):
 				self.add_ising_gate(qc, i, i + 1)
 			if n > 2:
 				for i in range(1, n, 2):
 					self.add_ising_gate(qc, i, (i + 1) % n)
-		
+
 		return qc
-	
+
 	def add_ising_gate(self, qc, q1, q2):
 		"""
 		Add transpiled RP = R_yx.R_xy gate to a circuit
@@ -428,7 +429,7 @@ class GibbsIsing:
 		qc.ry(next(self.theta), q1)
 		qc.cx(q2, q1)
 		qc.h([q1, q2])
-	
+
 	# noinspection PyUnusedLocal
 	def callback(self, *args, **kwargs):
 		"""
@@ -451,7 +452,7 @@ class GibbsIsing:
 			eigenvalues=self.eigenvalues
 		)
 		self.publish(message)
-	
+
 	def statevector_tomography(self):
 		"""
 		Perform statevector tomography
@@ -461,9 +462,9 @@ class GibbsIsing:
 		statevector = Statevector(circuit)
 		rho = partial_trace(statevector, self.ancilla_qubits).data
 		sigma = partial_trace(statevector, self.system_qubits).data.diagonal().real
-		
+
 		return rho, sigma
-	
+
 	def sampled_tomography(self):
 		"""
 		Perform sampled tomography
@@ -479,28 +480,28 @@ class GibbsIsing:
 		sigma_qst.set_transpile_options(**self.transpilation_options)
 		sigma_data = sigma_qst.run(self.backend, shots=self.shots).block_for_results()
 		sigma = sigma_data.analysis_results('state').value.data.diagonal().real
-		
+
 		return rho, sigma
 
 
 def main(
-	backend=Aer.get_backend('aer_simulator'),
-	user_messenger=UserMessenger(),
-	n=2,
-	J=1.,
-	h=0.5,
-	beta=1.,
-	N=1,
-	ancilla_reps=None,
-	system_reps=None,
-	x0=None,
-	optimizer=None,
-	min_kwargs=None,
-	shots=1024,
-	skip_transpilation=False,
-	use_measurement_mitigation=True,
-	noise_model=None,
-	credentials=None
+		backend=Aer.get_backend('aer_simulator'),
+		user_messenger=UserMessenger(),
+		n=2,
+		J=1.,
+		h=0.5,
+		beta=1.,
+		N=1,
+		ancilla_reps=None,
+		system_reps=None,
+		x0=None,
+		optimizer=None,
+		min_kwargs=None,
+		shots=1024,
+		skip_transpilation=False,
+		use_measurement_mitigation=True,
+		noise_model=None,
+		credentials=None
 ):
 	if not isinstance(beta, list):
 		beta = [beta]
@@ -535,9 +536,9 @@ def main(
 				N=i
 			)
 			result = gibbs.run(x0)
-			
+
 			results.append(result)
 		# Add to our results
 		multiple_results.append(results)
-	
+
 	return multiple_results

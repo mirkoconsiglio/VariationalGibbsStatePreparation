@@ -104,7 +104,7 @@ def rad_fn(x, pos=None):
 		return fr'${n}\pi/2$'
 
 
-def plot_density(folder, cmap, reverse=False):
+def plot_density(folder, cmap, reverse=False, show=True):
 	if reverse:
 		shape = (2, 3)
 	else:
@@ -183,32 +183,11 @@ def plot_density(folder, cmap, reverse=False):
 
 	fig.savefig(f'Bar3D.pdf', bbox_inches='tight', dpi=600, transparent=True)
 
-	# plt.subplot_tool()
-	plt.show()
+	if show:
+		plt.show()
 
 
-def plot_result(folder):
-	fig, ax = plt.subplots(figsize=(12, 8))
-	ax.set_xlabel(r'$\beta$')
-	ax.set_ylabel(r'$Y$')
-	ax.grid(visible=True, which='major', axis='both')
-
-	beta = []
-	fidelity = []
-	for file in filter(lambda x: x.endswith('.json'), listdir(folder)):
-		with open(f'{folder}/{file}', 'r') as f:
-			data = json.load(f)
-		beta.append(data['metadata']['beta'])
-		fidelity.append(data['metrics']['calculated_fidelity'])
-
-	ax.scatter(beta, fidelity, label='Fidelity')
-	ax.legend()
-	fig.savefig(f'{folder}/plot.pdf', dpi=600)
-
-	plt.show()
-
-
-def plot_multiple_results_max(directory):
+def plot_multiple_results_max(directory, show=True):
 	fig, ax = plt.subplots(figsize=(12, 8))
 	ax.set_xscale('function', functions=(forward, reverse))
 	ax.set_xlabel(r'$\beta$')
@@ -226,16 +205,17 @@ def plot_multiple_results_max(directory):
 				data = json.load(f)
 			n = data['metadata']['n']
 			h = data['metadata']['h']
-			beta.append(data['metadata']['beta'])
+			beta.append(data['metadata']['h'])
 			fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
 
-		ax.scatter(beta, fidelity, label=f'{n}-qubits')
+		ax.scatter(beta, fidelity, label=f'$n={n}$')
 
 	ax.legend()
 
 	fig.savefig(f'{directory}/fidelity_plot_{h:.2f}.pdf', dpi=600, transparent=True)
 
-	plt.show()
+	if show:
+		plt.show()
 
 
 def plot_result_min_avg_max(folder, show=True):
@@ -245,7 +225,7 @@ def plot_result_min_avg_max(folder, show=True):
 	ax.set_ylabel(r'$F$')
 	ax.set_xlim(-0.02, 5.3)
 	ax.grid(visible=True, which='both', axis='both')
-	
+
 	beta = []
 	min_fidelity = []
 	avg_fidelity = []
@@ -260,18 +240,19 @@ def plot_result_min_avg_max(folder, show=True):
 		min_fidelity.append(np.min(fidelity))
 		avg_fidelity.append(np.average(fidelity))
 		max_fidelity.append(np.max(fidelity))
-	
+
 	ax.scatter(beta, min_fidelity, label=f'minimum')
 	ax.scatter(beta, avg_fidelity, label=f'average')
 	ax.scatter(beta, max_fidelity, label=f'maximum')
-	
+
 	ax.legend()
-	
+
 	fig.savefig(f'{folder}/fidelity_plot.pdf', dpi=600, transparent=True)
-	
+
 	if show:
 		plt.show()
 
 
 if __name__ == '__main__':
-	plot_multiple_results_max('qiskit_runtime/jobs/ibmq_qasm_simulator')
+	plot_multiple_results_max('qiskit_runtime/cosenza_jobs/ibm_hanoi')
+# plot_multiple_results_max('qiskit_runtime/jobs/ibmq_qasm_simulator_ibmq_guadalupe')

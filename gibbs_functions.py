@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 
 import numpy as np
 from numpy.linalg import eigh
@@ -131,7 +132,7 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		os.makedirs(f'{output_folder}', exist_ok=True)
 	for results in multiple_results:  # Different beta
 		# Calculate exact results
-		# Assumes these will be the same for each different job
+		# Assumes these will be the same for each job
 		result = results[0]
 		n = result.get('n')
 		J = result.get('J')
@@ -143,8 +144,7 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		optimizer = result.get('optimizer')
 		min_kwargs = result.get('min_kwargs')
 		shots = result.get('shots')
-		noise_model_backend = result.get('noise_model_backend')
-		noise_model = result.get('noise_model')
+		noise_model = result.get('noise_model_backend')
 		exact_result = analytical_result(hamiltonian, beta)
 		ep = purity(exact_result['gibbs_state'])
 		# load data if append is True
@@ -247,8 +247,7 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 					optimizer=optimizer,
 					min_kwargs=min_kwargs,
 					shots=shots,
-					noise_model_backend=noise_model_backend,
-					noise_model=noise_model
+					noise_model=noise_model,
 				)
 			)
 
@@ -258,8 +257,7 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 
 class ResultsEncoder(RuntimeEncoder):
 	def default(self, obj):
-		if isinstance(obj, np.ndarray):
-			return obj.tolist()
 		if isinstance(obj, ParametricQuantumCircuit):
+			warnings.warn(f"ParametricQuantumCircuit {obj} is not JSON serializable and will be set to None.")
 			return None
 		return RuntimeEncoder.default(self, obj)
