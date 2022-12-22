@@ -1,0 +1,49 @@
+{
+  "metrics": {
+    "exact_purity": 0.4423502848609148,
+    "calculated_fidelity": [
+      0.9955588091810801
+    ],
+    "calculated_trace_distance": [
+      0.03332440427203484
+    ],
+    "calculated_relative_entropy": [
+      0.01108838559544045
+    ],
+    "calculated_purity": [
+      0.4357823265923404
+    ],
+    "noiseless_fidelity": [
+      0.9953053694146748
+    ],
+    "noiseless_trace_distance": [
+      0.014574887140645441
+    ],
+    "noiseless_relative_entropy": [
+      0.010463522756408685
+    ],
+    "noiseless_purity": [
+      0.4727423098990954
+    ]
+  },
+  "metadata": {
+    "job_ids": [
+      null
+    ],
+    "backends": [
+      null
+    ],
+    "n": 2,
+    "J": 1.0,
+    "h": 0.5,
+    "beta": 1.0,
+    "ancilla_reps": 1,
+    "system_reps": 1,
+    "optimizer": "SPSA",
+    "min_kwargs": {
+      "maxiter": 200
+    },
+    "shots": 1024,
+    "noise_model": "ibmq_guadalupe"
+  }
+}

@@ -112,15 +112,15 @@ if __name__ == '__main__':
 	meta["spec"]["interim_results"] = {
 		"$schema": "https://json-schema.org/draft/2019-09/schema",
 		"description": "dict of results such as parameters, cost, energy, entropy, eigenvalues, iterations and "
-		               "function evaluations.",
+					   "function evaluations.",
 		"type": "dict",
 	}
-
+	
 	service = QiskitRuntimeService()
-
+	
+	# program_id = service.upload_program(data='vgsp_ising_program.py', metadata=meta)
+	# print("Program uploaded")
+	# print(f"Program ID: {program_id}")
+	
 	service.update_program(program_id='vgsp-ising-qGq4q73MaV', data='vgsp_ising_program.py')
 	print("Program updated")
-
-# program_id = service.upload_program(data='vgsp_ising_program.py', metadata=meta)
-# print("Program uploaded")
-# print(f"Program ID: {program_id}")
