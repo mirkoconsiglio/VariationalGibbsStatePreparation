@@ -2,28 +2,28 @@
   "metrics": {
     "exact_purity": 0.4423502848609148,
     "calculated_fidelity": [
-      0.9955588091810801
+      0.9611181635926782
     ],
     "calculated_trace_distance": [
-      0.03332440427203484
+      0.04100363787993059
     ],
     "calculated_relative_entropy": [
-      0.01108838559544045
+      1.1807181086872953
     ],
     "calculated_purity": [
-      0.4357823265923404
+      0.46037121616975785
     ],
     "noiseless_fidelity": [
-      0.9953053694146748
+      0.9959275678151702
     ],
     "noiseless_trace_distance": [
-      0.014574887140645441
+      0.024136236941181367
     ],
     "noiseless_relative_entropy": [
-      0.010463522756408685
+      0.010036356714349978
     ],
     "noiseless_purity": [
-      0.4727423098990954
+      0.44660724225319715
     ]
   },
   "metadata": {
@@ -44,6 +44,6 @@
       "maxiter": 200
     },
     "shots": 1024,
-    "noise_model": "ibmq_guadalupe"
+    "noise_model": null
   }
 }
