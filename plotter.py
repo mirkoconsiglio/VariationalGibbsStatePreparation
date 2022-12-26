@@ -187,37 +187,6 @@ def plot_density(folder, cmap, reverse=False, show=True):
 		plt.show()
 
 
-def plot_multiple_results_max(directory, show=True):
-	fig, ax = plt.subplots(figsize=(12, 8))
-	ax.set_xscale('function', functions=(forward, reverse))
-	ax.set_xlabel(r'$\beta$')
-	ax.set_ylabel(r'$F$')
-	ax.set_xlim(-0.02, 5.3)
-	ax.grid(visible=True, which='both', axis='both')
-
-	h = None
-	for folder in filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory)):
-		n = None
-		beta = []
-		fidelity = []
-		for file in filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')):
-			with open(f'{directory}/{folder}/{file}', 'r') as f:
-				data = json.load(f)
-			n = data['metadata']['n']
-			h = data['metadata']['h']
-			beta.append(data['metadata']['h'])
-			fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
-
-		ax.scatter(beta, fidelity, label=f'$n={n}$')
-
-	ax.legend()
-
-	fig.savefig(f'{directory}/fidelity_plot_{h:.2f}.pdf', dpi=600, transparent=True)
-
-	if show:
-		plt.show()
-
-
 def plot_result_min_avg_max(folder, show=True):
 	fig, ax = plt.subplots(figsize=(12, 8))
 	ax.set_xscale('function', functions=(forward, reverse))
@@ -253,6 +222,37 @@ def plot_result_min_avg_max(folder, show=True):
 		plt.show()
 
 
+def plot_multiple_results_max(directory, show=True):
+	fig, ax = plt.subplots(figsize=(12, 8))
+	ax.set_xscale('function', functions=(forward, reverse))
+	ax.set_xlabel(r'$\beta$')
+	ax.set_ylabel(r'$F$')
+	ax.set_xlim(-0.02, 5.3)
+	ax.grid(visible=True, which='both', axis='both')
+
+	h = None
+	for folder in filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory)):
+		n = None
+		beta = []
+		fidelity = []
+		for file in filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')):
+			with open(f'{directory}/{folder}/{file}', 'r') as f:
+				data = json.load(f)
+			n = data['metadata']['n']
+			h = data['metadata']['h']
+			beta.append(data['metadata']['beta'])
+			fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
+
+		ax.scatter(beta, fidelity, label=f'$n={n}$')
+
+	ax.legend()
+
+	fig.savefig(f'{directory}/fidelity_plot_{h:.2f}.pdf', dpi=600, transparent=True)
+
+	if show:
+		plt.show()
+
+
 if __name__ == '__main__':
-	plot_multiple_results_max('qiskit_runtime/cosenza_jobs/ibm_hanoi')
-# plot_multiple_results_max('qiskit_runtime/jobs/ibmq_qasm_simulator_ibmq_guadalupe')
+	# plot_multiple_results_max('qiskit_runtime/cosenza_jobs/ibm_hanoi')
+	plot_multiple_results_max('qiskit_runtime/old_jobs/ibmq_qasm_simulator_ibmq_guadalupe')
