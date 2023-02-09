@@ -1,3 +1,4 @@
+import gzip
 import json
 import os
 import warnings
@@ -8,9 +9,9 @@ from qiskit.opflow import SummedOp
 from qiskit.opflow.primitive_ops import PauliOp
 from qiskit.quantum_info import Pauli
 from qiskit_ibm_runtime import RuntimeEncoder
-from scipy.linalg import norm, logm, expm
-
 from qulacs import ParametricQuantumCircuit
+from scipy.linalg import norm, logm, expm
+from scipy.stats import entropy
 
 
 def funm_psd(A, func):
@@ -73,8 +74,8 @@ def analytical_result(hamiltonian, beta):
 	hamiltonian_matrix = hamiltonian.to_matrix()
 	gibbs_state = exact_gibbs_state(hamiltonian_matrix, beta)
 	energy = (gibbs_state @ hamiltonian_matrix).diagonal().sum().real
-	entropy = von_neumann_entropy(gibbs_state)
-	cost = energy - entropy / beta
+	vn_entropy = von_neumann_entropy(gibbs_state)
+	cost = energy - vn_entropy / beta
 	eigenvalues = np.linalg.eigh(gibbs_state)[0]
 	hamiltonian_eigenvalues = np.linalg.eigh(hamiltonian_matrix)[0]
 	return dict(
@@ -126,10 +127,18 @@ def gibbs_result(gibbs):
 
 
 def print_multiple_results(multiple_results, output_folder=None, job_id=None, backend=None, append=True):
-	if not isinstance(multiple_results, list):
-		multiple_results = [multiple_results]
 	if output_folder:
-		os.makedirs(f'{output_folder}', exist_ok=True)
+		os.makedirs(output_folder, exist_ok=True)
+	# Check if there is already data saved to add to it rather than overwrite
+	if append and os.path.exists(f'{output_folder}/data.gz'):
+		with gzip.open(f'{output_folder}/data.gz', 'r') as f:
+			saved_data = json.loads(f.read().decode('utf-8'))
+	else:
+		saved_data = []
+	saved_data.append(multiple_results)
+	# Save results in a compressed format
+	with gzip.open(f'{output_folder}/data.gz', 'w') as f:
+		f.write(json.dumps(saved_data, cls=ResultsEncoder).encode('utf-8'))
 	for results in multiple_results:  # Different beta
 		# Calculate exact results
 		# Assumes these will be the same for each job
@@ -161,6 +170,7 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		backends = metadata.get('backends', [])
 		job_ids.append(job_id)
 		backends.append(backend)
+		# Do not add backends or job ids if they are already added
 		job_ids = list(set(job_ids))
 		backends = list(set(backends))
 		# Set up metrics
@@ -169,10 +179,12 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		ctd_list = metrics.get('calculated_trace_distance', [])
 		cre_list = metrics.get('calculated_relative_entropy', [])
 		cp_list = metrics.get('calculated_purity', [])
+		ckld_list = metrics.get('calculated_kullback_leibler_divergence', [])
 		nf_list = metrics.get('noiseless_fidelity', [])
 		ntd_list = metrics.get('noiseless_trace_distance', [])
 		nre_list = metrics.get('noiseless_relative_entropy', [])
 		np_list = metrics.get('noiseless_purity', [])
+		nkld_list = metrics.get('noiseless_kullback_leibler_divergence', [])
 		# Calculate and save data
 		for result in results:  # Different runs
 			# get calculated results
@@ -182,10 +194,12 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 			ctd_list.append(trace_distance(exact_result['gibbs_state'], calculated_result['rho']))
 			cre_list.append(relative_entropy(exact_result['gibbs_state'], calculated_result['rho']))
 			cp_list.append(purity(calculated_result['rho']))
+			ckld_list.append(entropy(exact_result['eigenvalues'], calculated_result['eigenvalues']))
 			nf_list.append(fidelity(exact_result['gibbs_state'], calculated_result['noiseless_rho']))
 			ntd_list.append(trace_distance(exact_result['gibbs_state'], calculated_result['noiseless_rho']))
 			nre_list.append(relative_entropy(exact_result['gibbs_state'], calculated_result['noiseless_rho']))
 			np_list.append(purity(calculated_result['noiseless_rho']))
+			nkld_list.append(entropy(exact_result['eigenvalues'], calculated_result['noiseless_eigenvalues']))
 		# Print results
 		print()
 		print(f"n: {n}")
@@ -205,8 +219,11 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		print(f"Calculated Relative Entropy avg: {np.average(cre_list)}")
 		print(f"Calculated Relative Entropy max: {np.max(cre_list)}")
 		print(f"Calculated Purity min: {np.min(cp_list)}")
-		print(f"Calculated Purity min: {np.average(cp_list)}")
-		print(f"Calculated Purity min: {np.max(cp_list)}")
+		print(f"Calculated Purity avg: {np.average(cp_list)}")
+		print(f"Calculated Purity max: {np.max(cp_list)}")
+		print(f"Calculated Kullback-Leibler Divergence min: {np.min(ckld_list)}")
+		print(f"Calculated Kullback-Leibler Divergence avg: {np.average(ckld_list)}")
+		print(f"Calculated Kullback-Leibler Divergence max: {np.max(ckld_list)}")
 		print()
 		print(f"Noiseless Fidelity min: {np.min(nf_list)}")
 		print(f"Noiseless Fidelity avg: {np.average(nf_list)}")
@@ -220,6 +237,9 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		print(f"Noiseless Purity min: {np.min(np_list)}")
 		print(f"Noiseless Purity avg: {np.average(np_list)}")
 		print(f"Noiseless Purity max: {np.max(np_list)}")
+		print(f"Noiseless Kullback-Leibler Divergence min: {np.min(nkld_list)}")
+		print(f"Noiseless Kullback-Leibler Divergence avg: {np.average(nkld_list)}")
+		print(f"Noiseless Kullback-Leibler Divergence max: {np.max(nkld_list)}")
 		print()
 
 		if output_folder:
@@ -230,10 +250,12 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 					calculated_trace_distance=ctd_list,
 					calculated_relative_entropy=cre_list,
 					calculated_purity=cp_list,
+					calculated_kullback_leibler_divergence=ckld_list,
 					noiseless_fidelity=nf_list,
 					noiseless_trace_distance=ntd_list,
 					noiseless_relative_entropy=nre_list,
-					noiseless_purity=np_list
+					noiseless_purity=np_list,
+					noiseless_kullback_leibler_divergence=nkld_list,
 				),
 				metadata=dict(
 					job_ids=job_ids,
