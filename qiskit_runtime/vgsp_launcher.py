@@ -9,13 +9,14 @@ def main():
 	n = 2
 	J = 1.
 	h = 0.5
-	beta = [1e-10, 0.2, 0.5, 0.8, 1.2, 1., 2., 3., 4., 5.]
+	beta = [1e-10, 0.2, 0.5, 0.8, 1., 1.2, 2., 3., 4., 5.]
 	shots = 1024
-	N = 10  # Can be split manually into a list
+	tomography_shots = 8192
+	N = 1  # Can be split manually into a list
 	split_betas = True  # Split each beta into a separate job with N runs each
-	program_id = 'vgsp-ising-qGq4q73MaV'  # program id once it is uploaded
-	backend_name = 'ibmq_qasm_simulator'
-	noise_model = 'ibmq_guadalupe'
+	program_id = 'vgsp-ising-M6dPdLeJd6'  # program id
+	backend_name = 'ibm_nairobi'
+	noise_model = None
 	options = dict(backend_name=backend_name)  # Choose backend (required)
 	if isinstance(noise_model, str):  # needed to simulate noise model based on backend you have access to
 		provider = IBMQ.load_account()  # need to have credentials stored locally
@@ -28,7 +29,7 @@ def main():
 	else:
 		credentials = None
 	# Initiate service
-	service = QiskitRuntimeService()
+	service = QiskitRuntimeService(name='personal')
 	# Submit job/s
 	job = None
 	if not split_betas or not isinstance(beta, list):
@@ -38,7 +39,8 @@ def main():
 	for b in beta:
 		for i in N:
 			# inputs
-			inputs = dict(n=n, J=J, h=h, beta=b, shots=shots, N=i, noise_model=noise_model, credentials=credentials)
+			inputs = dict(n=n, J=J, h=h, beta=b, shots=shots, tomography_shots=tomography_shots,
+			              N=i, noise_model=noise_model, credentials=credentials)
 			# Run job
 			job = service.run(program_id, options=options, inputs=inputs)
 			job_id = job.job_id()

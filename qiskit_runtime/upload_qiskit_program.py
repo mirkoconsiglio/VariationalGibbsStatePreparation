@@ -78,6 +78,12 @@ if __name__ == '__main__':
 				"type": "int",
 				"default": 1024
 			},
+			"tomography_shots": {
+				"description": "The number of shots used for tomography. If less than the number of shots "
+				               "then the number of shots used for the algorithm is taken for tomography.",
+				"type": "int",
+				"default": 8192
+			},
 			"use_measurement_mitigation": {
 				"description": "Use measurement mitigation using the M3 package, default is True.",
 				"type": "bool",
@@ -105,22 +111,22 @@ if __name__ == '__main__':
 	meta["spec"]["return_values"] = {
 		"$schema": "https://json-schema.org/draft/2019-09/schema",
 		"description": "Final result containing dicts of parameters, cost, energy, entropy, eigenvalues, iterations "
-					   "and function evaluations, among others.",
+		               "and function evaluations, among others.",
 		"type": "array",
 	}
 	# Interim results
 	meta["spec"]["interim_results"] = {
 		"$schema": "https://json-schema.org/draft/2019-09/schema",
 		"description": "dict of results such as parameters, cost, energy, entropy, eigenvalues, iterations and "
-					   "function evaluations.",
+		               "function evaluations.",
 		"type": "dict",
 	}
-	
-	service = QiskitRuntimeService()
-	
+
+	service = QiskitRuntimeService(name='personal')
+
 	# program_id = service.upload_program(data='vgsp_ising_program.py', metadata=meta)
 	# print("Program uploaded")
 	# print(f"Program ID: {program_id}")
-	
-	service.update_program(program_id='vgsp-ising-qGq4q73MaV', data='vgsp_ising_program.py')
+
+	service.update_program(program_id='vgsp-ising-M6dPdLeJd6', data='vgsp_ising_program.py', metadata=meta)
 	print("Program updated")

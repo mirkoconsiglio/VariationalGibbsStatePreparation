@@ -31,6 +31,7 @@ class GibbsIsing:
 			optimizer=None,
 			min_kwargs=None,
 			shots=1024,
+			tomography_shots=8192,
 			skip_transpilation=False,
 			use_measurement_mitigation=True,
 			noise_model=None,
@@ -100,6 +101,8 @@ class GibbsIsing:
 		# Shots
 		self.shots = shots
 		self.total_shots = self.shots * self.num_pauli_circuits
+		# Tomography shots
+		self.tomography_shots = max(self.shots, tomography_shots)
 		# Setup backend
 		self.backend = backend
 		self.backend_name = backend.name()
@@ -473,12 +476,12 @@ class GibbsIsing:
 		# State tomography for rho
 		rho_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.system_qubits)
 		rho_qst.set_transpile_options(**self.transpilation_options)
-		rho_data = rho_qst.run(self.backend, shots=self.shots).block_for_results()
+		rho_data = rho_qst.run(self.backend, shots=self.tomography_shots).block_for_results()
 		rho = rho_data.analysis_results('state').value.data
 		# State tomography for sigma (assuming it is diagonal)
 		sigma_qst = StateTomography(self.ansatz.bind_parameters(self.params), measurement_qubits=self.ancilla_qubits)
 		sigma_qst.set_transpile_options(**self.transpilation_options)
-		sigma_data = sigma_qst.run(self.backend, shots=self.shots).block_for_results()
+		sigma_data = sigma_qst.run(self.backend, shots=self.tomography_shots).block_for_results()
 		sigma = sigma_data.analysis_results('state').value.data.diagonal().real
 
 		return rho, sigma
@@ -498,6 +501,7 @@ def main(
 		optimizer=None,
 		min_kwargs=None,
 		shots=1024,
+		tomography_shots=8192,
 		skip_transpilation=False,
 		use_measurement_mitigation=True,
 		noise_model=None,
@@ -529,6 +533,7 @@ def main(
 				optimizer=optimizer,
 				min_kwargs=min_kwargs,
 				shots=shots,
+				tomography_shots=tomography_shots,
 				skip_transpilation=skip_transpilation,
 				use_measurement_mitigation=use_measurement_mitigation,
 				noise_model=noise_model,
