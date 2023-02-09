@@ -10,11 +10,11 @@ if __name__ == '__main__':
 	parser.add_argument('--N', default=1, type=int)
 	parser.add_argument('--beta', default=1., type=float, nargs='+')
 	parser.add_argument('--noise_model', default=None, type=str)
+	parser.add_argument('--folder', default='test_job', type=str)
 	args = vars(parser.parse_args())
+	folder = args.pop('folder')
 
 	results = main(**args)
-
-	folder = 'test_job'
 
 	print_multiple_results(results, output_folder=folder)
 
