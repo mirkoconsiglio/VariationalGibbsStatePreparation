@@ -1,0 +1,66 @@
+{
+  "metrics": {
+    "exact_purity": 0.27695519291630366,
+    "calculated_fidelity": [
+      0.739129245213894,
+      0.8463242088516378
+    ],
+    "calculated_trace_distance": [
+      0.25283543029985356,
+      0.15966524611416147
+    ],
+    "calculated_relative_entropy": [
+      0.6815256942713271,
+      0.3571062012359795
+    ],
+    "calculated_purity": [
+      0.22930673905360932,
+      0.206892849486552
+    ],
+    "calculated_kullback_leibler_divergence": [
+      0.03240876797567365,
+      0.026162325573867322
+    ],
+    "noiseless_fidelity": [
+      0.5712468370881224,
+      0.779177245482312
+    ],
+    "noiseless_trace_distance": [
+      0.3198793220988423,
+      0.21008588316452062
+    ],
+    "noiseless_relative_entropy": [
+      1.8390671625155774,
+      0.7887713535056502
+    ],
+    "noiseless_purity": [
+      0.4295214795285068,
+      0.48595385765185284
+    ],
+    "noiseless_kullback_leibler_divergence": [
+      0.40064536728822286,
+      0.49472968530352435
+    ]
+  },
+  "metadata": {
+    "job_ids": [
+      "cfh1qvfa7vmuk66590tg",
+      "cff2di5rc8d9f823v2s0"
+    ],
+    "backends": [
+      "ibm_nairobi"
+    ],
+    "n": 3,
+    "J": 1,
+    "h": 0.5,
+    "beta": 0.5,
+    "ancilla_reps": 1,
+    "system_reps": 2,
+    "optimizer": "SPSA",
+    "min_kwargs": {
+      "maxiter": 300
+    },
+    "shots": 1024,
+    "noise_model": null
+  }
+}

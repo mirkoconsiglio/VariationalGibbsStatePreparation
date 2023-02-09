@@ -1,53 +1,53 @@
 {
   "metrics": {
-    "exact_purity": 0.4423502848609148,
+    "exact_purity": 0.4776975316760884,
     "calculated_fidelity": [
-      0.9986472096422179
+      0.6326732636701928
     ],
     "calculated_trace_distance": [
-      0.014728515344853437
+      0.3130678983432376
     ],
     "calculated_relative_entropy": [
-      0.0030272551387116693
+      0.8852521350880935
     ],
     "calculated_purity": [
-      0.4476309087541376
+      0.29016783208022967
     ],
     "calculated_kullback_leibler_divergence": [
-      0.0002889447760745828
+      0.6210042384938239
     ],
     "noiseless_fidelity": [
-      0.9998318785427883
+      0.9536335829771115
     ],
     "noiseless_trace_distance": [
-      0.005191072859688377
+      0.12875895103274593
     ],
     "noiseless_relative_entropy": [
-      0.00036427486561356644
+      0.16734664042130645
     ],
     "noiseless_purity": [
-      0.44212327532256207
+      0.4934741631043114
     ],
     "noiseless_kullback_leibler_divergence": [
-      0.0002932219581465679
+      0.028922204066175582
     ]
   },
   "metadata": {
     "job_ids": [
-      null
+      "cff2d2n9l8pf2dfr4b3g"
     ],
     "backends": [
-      null
+      "ibm_perth"
     ],
-    "n": 2,
-    "J": 1.0,
+    "n": 3,
+    "J": 1,
     "h": 0.5,
-    "beta": 1.0,
+    "beta": 1.2,
     "ancilla_reps": 1,
-    "system_reps": 1,
+    "system_reps": 2,
     "optimizer": "SPSA",
     "min_kwargs": {
-      "maxiter": 200
+      "maxiter": 300
     },
     "shots": 1024,
     "noise_model": null

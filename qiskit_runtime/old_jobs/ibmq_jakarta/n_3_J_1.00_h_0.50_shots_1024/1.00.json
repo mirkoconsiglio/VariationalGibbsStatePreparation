@@ -1,53 +1,53 @@
 {
   "metrics": {
-    "exact_purity": 0.4423502848609148,
+    "exact_purity": 0.45242507480844885,
     "calculated_fidelity": [
-      0.9986472096422179
+      0.78327952657503
     ],
     "calculated_trace_distance": [
-      0.014728515344853437
+      0.23079229724449124
     ],
     "calculated_relative_entropy": [
-      0.0030272551387116693
+      0.5012176041530999
     ],
     "calculated_purity": [
-      0.4476309087541376
+      0.3009129041506929
     ],
     "calculated_kullback_leibler_divergence": [
-      0.0002889447760745828
+      0.18247600263380057
     ],
     "noiseless_fidelity": [
-      0.9998318785427883
+      0.9434917953748966
     ],
     "noiseless_trace_distance": [
-      0.005191072859688377
+      0.13319040364905113
     ],
     "noiseless_relative_entropy": [
-      0.00036427486561356644
+      0.16895048492959117
     ],
     "noiseless_purity": [
-      0.44212327532256207
+      0.5202353137942808
     ],
     "noiseless_kullback_leibler_divergence": [
-      0.0002932219581465679
+      0.05029912118357541
     ]
   },
   "metadata": {
     "job_ids": [
-      null
+      "cff2cs0aqp2ana0vlm2g"
     ],
     "backends": [
-      null
+      "ibmq_jakarta"
     ],
-    "n": 2,
-    "J": 1.0,
+    "n": 3,
+    "J": 1,
     "h": 0.5,
-    "beta": 1.0,
+    "beta": 1,
     "ancilla_reps": 1,
-    "system_reps": 1,
+    "system_reps": 2,
     "optimizer": "SPSA",
     "min_kwargs": {
-      "maxiter": 200
+      "maxiter": 300
     },
     "shots": 1024,
     "noise_model": null
