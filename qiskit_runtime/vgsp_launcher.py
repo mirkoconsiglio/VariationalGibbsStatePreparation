@@ -11,7 +11,7 @@ def main():
 	h = 0.5
 	beta = [1e-10, 0.2, 0.5, 0.8, 1., 1.2, 2., 3., 4., 5.]
 	shots = 1024
-	tomography_shots = 8192
+	tomography_shots = 1024
 	N = 1  # Can be split manually into a list
 	split_betas = True  # Split each beta into a separate job with N runs each
 	program_id = 'vgsp-ising-M6dPdLeJd6'  # program id
