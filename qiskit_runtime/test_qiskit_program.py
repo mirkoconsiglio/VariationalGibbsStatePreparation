@@ -6,7 +6,7 @@ from vgsp_ising_program import main
 
 if __name__ == '__main__':
 	parser = ArgumentParser(description='VGSP')
-	parser.add_argument('--n', default=2, type=int)
+	parser.add_argument('--n', default=3, type=int)
 	parser.add_argument('--N', default=1, type=int)
 	parser.add_argument('--beta', default=1., type=float, nargs='+')
 	parser.add_argument('--noise_model', default=None, type=str)

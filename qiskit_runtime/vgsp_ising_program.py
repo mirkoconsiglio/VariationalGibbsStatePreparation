@@ -2,7 +2,6 @@ import inspect
 from collections import Counter
 
 import numpy as np
-from matplotlib import pyplot as plt
 from mthree import M3Mitigation
 from mthree.classes import QuasiCollection, QuasiDistribution
 from mthree.utils import final_measurement_mapping
@@ -138,10 +137,6 @@ class GibbsIsing:
 			self.mappings = final_measurement_mapping(self.pauli_circuits)
 			self.mit = M3Mitigation(self.backend)
 			self.mit.cals_from_system(self.mappings, shots=self.shots)
-		self.pauli_circuits[1].draw(output='mpl')
-		print(self.pauli_circuits[1].depth())
-		plt.show()
-		quit()
 		# Logging
 		self.iter = None
 		self.nfev = None
@@ -415,7 +410,7 @@ class GibbsIsing:
 
 		for _ in range(self.system_reps):
 			for i in range(0, n, 2):
-				self.add_ising_gate(qc, i, i + 1)
+				self.add_ising_gate(qc, i, (i + 1) % n)
 			if n > 2:
 				for i in range(1, n, 2):
 					self.add_ising_gate(qc, i, (i + 1) % n)
