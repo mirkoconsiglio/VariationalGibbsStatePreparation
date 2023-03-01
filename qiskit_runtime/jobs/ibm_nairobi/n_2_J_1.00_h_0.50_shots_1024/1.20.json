@@ -1,0 +1,119 @@
+{
+  "metrics": {
+    "exact_purity": 0.47715088918704646,
+    "calculated_fidelity": [
+      0.9882778144920901
+    ],
+    "calculated_trace_distance": [
+      0.07023484433601704
+    ],
+    "calculated_relative_entropy": [
+      0.027430959468541165
+    ],
+    "calculated_purity": [
+      0.4620882670084645
+    ],
+    "calculated_kullback_leibler_divergence": [
+      0.029148721233356226
+    ],
+    "noiseless_fidelity": [
+      0.9706327970744468
+    ],
+    "noiseless_trace_distance": [
+      0.021353280896557254
+    ],
+    "noiseless_relative_entropy": [
+      0.14164126997074628
+    ],
+    "noiseless_purity": [
+      0.5119257847950365
+    ],
+    "noiseless_kullback_leibler_divergence": [
+      0.08175368060297489
+    ]
+  },
+  "metadata": {
+    "job_ids": [
+      "cfd31c7va0ku8f0ifhog"
+    ],
+    "backends": [
+      "ibm_nairobi"
+    ],
+    "n": 2,
+    "J": 1,
+    "h": 0.5,
+    "beta": 1.2,
+    "ancilla_reps": 1,
+    "system_reps": 1,
+    "optimizer": "SPSA",
+    "min_kwargs": {
+      "maxiter": 200
+    },
+    "shots": 1024,
+    "noise_model": null
+  },
+  "calculated_result": [
+    {
+      "params": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RpmOpo6CrUKFACujH999zb4H7NncRO4zDCLw+GAqIlccvUfe7OFz7s+Pjln71Z2gSO06fP+BMnNb5684nYAAKPWMv4="
+      },
+      "cost": -1.8232559083769246,
+      "energy": -1.0295168440679097,
+      "entropy": 0.9524868771708179,
+      "rho": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaJjoKJpo6CrUK5AKuTauAgOm+PQMyaFhrHxIKAtP2c4D5s+w3gNSt6tkPll9wDKq+xx5NvX0miGo9h2qew1EoP8AeYt5E+zVg84rs0cy3R1O/fz9I2Oo43DwNiIX2O8Dqu9Ddsx/N/P1o6u2LQe4r3QE3DwDerGMC"
+      },
+      "noiseless_rho": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaJjoKJpo6CrUK5AKumnaeRR8FH9gzQIFo1o3zS8xzbGD8iZ/YGYtLK+D858see8RxnsWpvurjwaOHbU7A5U/ey7j8TBHBL/24sGzbouQ9uMxHVx8a+f4qvzCCf/5dvsvOBh+4fnT3oJuPrj5Dz3LH6Qv74OoBy1RfIg=="
+      },
+      "sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFAAueQYgSNhsHwCiDyy15wbRO67bM4PomAf2ACMZIhs="
+      },
+      "noiseless_sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFACupRYTWP29++yTz572f/hc3f7t6nUX36jcsE/P+XvnbtFjewDLiC0L"
+      },
+      "eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFACuAAYgOLDUXh5EJ2y25wbRO67bM4PomAf2ACcxIhs="
+      },
+      "noiseless_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFACu5LOn/R8+V7dfajGB1d+7z/7t6nUX36jcsE/P+XvnbtFjewDYgC0L"
+      },
+      "hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFAAuNc/uRe8sv+yf6ddfceP++/02Uznervl5xb7o+PmJUY9f2gMA8/4upA=="
+      },
+      "noiseless_hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFACu4zqqf2I7vu3fLdDUN0fnw35rxzWMU5l+2wcrc3atSBd1AADJpCnG"
+      }
+    }
+  ],
+  "exact_result": {
+    "hamiltonian_matrix": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaJjoKJpo6CrUK5AIuBjD4sJ8BFTTg5xNUjwYoNh8dkOoedPX2MBYA8zYpGQ=="
+    },
+    "gibbs_state": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOgommjoKtQpkA65VcwxeftR/YM+ABiSU70vlHD0JF8/dIFO2hPWk/fF51x+L3zmCof4YVBymDiYuhWYODLyL4Lh3L3OXPQBlNDxC"
+    },
+    "energy": -1.1312828302248614,
+    "entropy": null,
+    "cost": -1.8549684748290511,
+    "eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFACumA+sXj2OU+xnuYl4Gi1bYD9L/ZfOvQ/X7F0rFiYp3n5kDwClKSo1"
+    },
+    "hamiltonian_eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RomOpo6CrUKFACus9b1afMWfNvPAAYfYLQ9VNweAIaBJ30="
+    }
+  }
+}
