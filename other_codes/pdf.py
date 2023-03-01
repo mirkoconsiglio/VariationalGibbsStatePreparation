@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 from matplotlib import rc
+from qulacs import QuantumState
+from qulacs.gibbs_ising_qulacs import GibbsIsing
 from qulacs.state import inner_product
 
 from gibbs_functions import *
-from qulacs import QuantumState
-from qulacs.gibbs_ising_qulacs import GibbsIsing
 
 rc('font', **{'family': 'Times New Roman', 'sans-serif': ['Times New Roman'], 'size': 20})
 rc('text', usetex=True)
