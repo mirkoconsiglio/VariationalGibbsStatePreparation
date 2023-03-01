@@ -135,7 +135,7 @@ def plot_density(folder, cmap=shiftedColorMap(cc.cm.CET_C8s, cycle=0.5), reverse
 
 		beta = data['metadata']['beta']
 
-		if beta != 1e-8 and beta != 1. and beta != 5.:
+		if beta != 1e-10 and beta != 1. and beta != 5.:
 			continue
 
 		if reverse:
@@ -160,7 +160,7 @@ def plot_density(folder, cmap=shiftedColorMap(cc.cm.CET_C8s, cycle=0.5), reverse
 			ax = axes[0, i]
 		else:
 			ax = axes[i, 1]
-		calculated_rho = np.asarray(data['calculated_result']['rho'])
+		calculated_rho = np.asarray(data['calculated_result'][0]['rho'])
 		dz, color = complex_to_size_and_color(calculated_rho, cmap, -np.pi, np.pi)
 		set_bar3d(ax, xpos, ypos, zpos, dx, dy, dz, color)
 		if i == 0 or reverse:
@@ -271,7 +271,7 @@ def plot_multiple_results_max(directory, show=True):
 	ax6.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
 	ax6.grid(visible=True, which='both', axis='both')
 
-	markers = ['o', 's', 'd', '^']
+	markers = ['o', 's', 'd', '^', 'X']
 
 	h = None
 	for m, folder in zip(markers, filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
@@ -292,9 +292,10 @@ def plot_multiple_results_max(directory, show=True):
 		for file in filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')):
 			with open(f'{directory}/{folder}/{file}', 'r') as f:
 				data = json.load(f)
+			shots = data['metadata']['shots']
 			n = data['metadata']['n']
 			h = data['metadata']['h']
-			std_err = 1. / np.sqrt(data['metadata']['shots'])
+			std_err = 1. / np.sqrt(shots) if shots else 0.
 
 			beta.append(data['metadata']['beta'])
 			fidelity.append(np.max(data['metrics']['calculated_fidelity']))
@@ -360,7 +361,7 @@ def plot_3multiple_results_max(directories, show=True):
 		ax.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
 		ax.grid(visible=True, which='both', axis='both')
 
-	markers = ['o', 's', 'd', '^']
+	markers = ['o', 's', 'd', '^', 'X']
 
 	for ax, directory in zip(axes, directories):
 		for m, folder in zip(markers, filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
@@ -372,21 +373,122 @@ def plot_3multiple_results_max(directories, show=True):
 					data = json.load(f)
 				n = data['metadata']['n']
 				beta.append(data['metadata']['beta'])
-				fidelity.append(data['metrics']['noiseless_fidelity'])
+				fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
 
 			ax.plot(beta, fidelity, marker=m, label=f'$n={n}$')
 
 	for h, ax in zip(['0.5', '1.0', '1.5'], axes):
 		ax.legend(title=fr'$h = {h}$')
 
-	fig.savefig('fidelity_plot_3.pdf', bbox_inches='tight')
-	fig.savefig('fidelity_plot_3.png', dpi=600, transparent=True, bbox_inches='tight')
+	fig.savefig('figures/fidelity_statevector.pdf', bbox_inches='tight')
+	fig.savefig('figures/fidelity_statevector.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
+def plot_scaling_shots(directory, show=True):
+	fig1, ax1 = plt.subplots(figsize=(12, 8))
+	ax1.set_xlabel(r'Shots')
+	ax1.set_ylabel(r'$F$')
+	ax1.set_xscale('log', base=2)
+	ax1.grid(visible=True, which='both', axis='both')
+
+	plot_list = []
+	for folder in list(filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
+		file = list(filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')))[0]
+
+		with open(f'{directory}/{folder}/{file}', 'r') as f:
+			data = json.load(f)
+
+		shots = data['metadata']['shots']
+		fidelity = np.max(data['metrics']['noiseless_fidelity'])
+		std_err = 1. / np.sqrt(shots)
+
+		plot_list.append([shots, fidelity, std_err])
+
+	plot_list = np.asarray(plot_list)
+	plot_list = plot_list[plot_list[:, 0].argsort()]
+
+	ax1.errorbar(plot_list[:, 0], plot_list[:, 1], yerr=plot_list[:, 2], capsize=5, marker='o')
+
+	fig1.savefig(f'{directory}/shots_fidelity_plot.pdf', bbox_inches='tight')
+	fig1.savefig(f'{directory}/shots_fidelity_plot.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
+def plot_scaling_iter(directory, show=True):
+	fig1, ax1 = plt.subplots(figsize=(12, 8))
+	ax1.set_xlabel(r'Iterations')
+	ax1.set_ylabel(r'$F$')
+	ax1.grid(visible=True, which='both', axis='both')
+
+	plot_list = []
+	for folder in list(filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
+		file = list(filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')))[0]
+
+		with open(f'{directory}/{folder}/{file}', 'r') as f:
+			data = json.load(f)
+
+		itr = data['metadata']['min_kwargs']['maxiter']
+		fidelity = np.max(data['metrics']['noiseless_fidelity'])
+		std_err = 1. / np.sqrt(data['metadata']['shots'])
+
+		plot_list.append([itr, fidelity, std_err])
+
+	plot_list = np.asarray(plot_list)
+	plot_list = plot_list[plot_list[:, 0].argsort()]
+
+	ax1.errorbar(plot_list[:, 0], plot_list[:, 1], yerr=plot_list[:, 2], capsize=5, marker='o')
+
+	fig1.savefig(f'{directory}/iter_fidelity_plot.pdf', bbox_inches='tight')
+	fig1.savefig(f'{directory}/iter_fidelity_plot.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
+def plot_scaling_layers(directory, show=True):
+	fig1, ax1 = plt.subplots(figsize=(12, 8))
+	ax1.set_xlabel(r'Layers')
+	ax1.set_ylabel(r'$F$')
+	ax1.grid(visible=True, which='both', axis='both')
+
+	plot_list = []
+	for folder in list(filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
+		file = list(filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')))[0]
+
+		with open(f'{directory}/{folder}/{file}', 'r') as f:
+			data = json.load(f)
+
+		layers = data['metadata']['system_reps']
+		fidelity = np.max(data['metrics']['noiseless_fidelity'])
+		std_err = 1. / np.sqrt(data['metadata']['shots'])
+
+		plot_list.append([layers, fidelity, std_err])
+
+	plot_list = np.asarray(plot_list)
+	plot_list = plot_list[plot_list[:, 0].argsort()]
+
+	ax1.errorbar(plot_list[:, 0], plot_list[:, 1], yerr=plot_list[:, 2], capsize=5, marker='o')
+
+	fig1.savefig(f'{directory}/layers_fidelity_plot.pdf', bbox_inches='tight')
+	fig1.savefig(f'{directory}/layers_fidelity_plot.png', dpi=600, transparent=True, bbox_inches='tight')
 
 	if show:
 		plt.show()
 
 
 if __name__ == '__main__':
-	plot_multiple_results_max('qiskit_runtime/old_jobs/ibm_nairobi')
-# plot_3multiple_results_max(['qulacs/data_h_0.5', 'qulacs/data_h_1.0', 'qulacs/data_h_1.5'])
-# plot_density('qiskit_runtime/old_jobs/ibmq_jakarta_old/ccvfuro9ujl45d6clog0')
+	# plot_multiple_results_max('qulacs/data/SciPyOptimizer')
+	# plot_multiple_results_max('qiskit_runtime/old_jobs/ibmq_qasm_simulator_ibmq_guadalupe')
+	plot_3multiple_results_max(['qulacs/data/extra_extra_statevector_h_0.50',
+	                            'qulacs/data/extra_extra_statevector_h_1.00',
+	                            'qulacs/data/extra_extra_statevector_h_1.50'])
+# plot_3multiple_results_max(['qulacs/100_runs_0.5', 'qulacs/100_runs_1.0', 'qulacs/100_runs_1.5'])
+# plot_density('qiskit_runtime/jobs/ibm_nairobi/n_2_J_1.00_h_0.50_shots_1024')
+# plot_scaling_shots('qulacs/scaling_shots')
+# plot_scaling_iter('qulacs/scaling_iterations')
+# plot_scaling_layers('qulacs/scaling_layers')
