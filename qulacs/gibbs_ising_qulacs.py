@@ -105,7 +105,7 @@ class GibbsIsing:
 		:param commuting_terms: whether to group commuting terms or not.
 		:return: dict containing results of the simulation
 		"""
-		self.seed = seed if seed is not None else np.random.randint(2 ** 32)
+		self.seed = seed if seed is not None else np.random.randint(2 ** 16)
 		np.random.seed(self.seed)
 		algorithm_globals.random_seed = self.seed
 		if noise_model:
@@ -204,7 +204,6 @@ class GibbsIsing:
 			optimizer=self.optimizer.__class__.__name__,
 			min_kwargs=self.min_kwargs,
 			shots=self.shots,
-			result=self.result
 		)
 
 	@staticmethod
@@ -368,7 +367,7 @@ class GibbsIsing:
 			qubits = range(qc.get_qubit_count())
 
 		for _ in range(self.system_reps):
-			for i in range(0, len(qubits) - 1, 2):
+			for i in range(0, len(qubits), 2):
 				j = (i + 1) % self.n
 				if self.noise_model:
 					self.add_qiskit_ising_gate(qc, qubits[i], qubits[j])
