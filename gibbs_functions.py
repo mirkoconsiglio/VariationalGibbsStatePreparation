@@ -9,9 +9,10 @@ from qiskit.opflow import SummedOp
 from qiskit.opflow.primitive_ops import PauliOp
 from qiskit.quantum_info import Pauli
 from qiskit_ibm_runtime import RuntimeEncoder
-from qulacs import ParametricQuantumCircuit
 from scipy.linalg import norm, logm, expm
 from scipy.stats import entropy
+
+from qulacs import ParametricQuantumCircuit
 
 
 def funm_psd(A, func):
@@ -82,7 +83,7 @@ def analytical_result(hamiltonian, beta):
 		hamiltonian_matrix=hamiltonian_matrix,
 		gibbs_state=gibbs_state,
 		energy=energy,
-		entropy=entropy,
+		entropy=vn_entropy,
 		cost=cost,
 		eigenvalues=eigenvalues,
 		hamiltonian_eigenvalues=hamiltonian_eigenvalues
@@ -126,19 +127,20 @@ def gibbs_result(gibbs):
 	)
 
 
-def print_multiple_results(multiple_results, output_folder=None, job_id=None, backend=None, append=True):
+def print_multiple_results(multiple_results, output_folder=None, job_id=None, backend=None, append=True, zip_file=True):
 	if output_folder:
 		os.makedirs(output_folder, exist_ok=True)
 	# Check if there is already data saved to add to it rather than overwrite
-	if append and os.path.exists(f'{output_folder}/data.gz'):
+	if append and zip_file and os.path.exists(f'{output_folder}/data.gz'):
 		with gzip.open(f'{output_folder}/data.gz', 'r') as f:
 			saved_data = json.loads(f.read().decode('utf-8'))
 	else:
 		saved_data = []
-	saved_data.append(multiple_results)
-	# Save results in a compressed format
-	with gzip.open(f'{output_folder}/data.gz', 'w') as f:
-		f.write(json.dumps(saved_data, cls=ResultsEncoder).encode('utf-8'))
+	if zip_file:
+		saved_data.append(multiple_results)
+		# Save results in a compressed format
+		with gzip.open(f'{output_folder}/data.gz', 'w') as f:
+			f.write(json.dumps(saved_data, cls=ResultsEncoder).encode('utf-8'))
 	for results in multiple_results:  # Different beta
 		# Calculate exact results
 		# Assumes these will be the same for each job
@@ -186,9 +188,11 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		np_list = metrics.get('noiseless_purity', [])
 		nkld_list = metrics.get('noiseless_kullback_leibler_divergence', [])
 		# Calculate and save data
+		calculated_results = []
 		for result in results:  # Different runs
 			# get calculated results
 			calculated_result = gibbs_result(result)
+			calculated_results.append(calculated_result)
 			# Calculate comparative results
 			cf_list.append(fidelity(exact_result['gibbs_state'], calculated_result['rho']))
 			ctd_list.append(trace_distance(exact_result['gibbs_state'], calculated_result['rho']))
@@ -270,7 +274,9 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 					min_kwargs=min_kwargs,
 					shots=shots,
 					noise_model=noise_model,
-				)
+				),
+				calculated_result=calculated_results,
+				exact_result=exact_result
 			)
 
 			with open(f'{output_folder}/{beta:.2f}.json', 'w') as f:
