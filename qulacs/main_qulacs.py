@@ -14,7 +14,6 @@ def main():
 	beta = [1e-10, 0.2, 0.5, 0.8, 1., 1.2, 2., 3., 4., 5.]
 	shots = 8192  # Number of shots to sample
 	seed = None
-	noise_model = False
 	ancilla_reps = None
 	system_reps = None
 	commuting_terms = True
@@ -31,8 +30,6 @@ def main():
 		folder += f'{shots}_shots_'
 	else:
 		folder += 'exact_'
-	if noise_model:
-		folder += 'noise_'
 	folder += f'n_{n}_J_{J:.2f}_h_{h:.2f}'
 	if not isinstance(beta, list):
 		beta = [beta]
@@ -50,7 +47,6 @@ def main():
 				ancilla_reps=ancilla_reps,
 				system_reps=system_reps,
 				seed=seed,
-				noise_model=noise_model,
 				commuting_terms=commuting_terms
 			)
 
