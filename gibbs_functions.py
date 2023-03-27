@@ -188,7 +188,7 @@ def print_multiple_results(multiple_results, output_folder=None, job_id=None, ba
 		np_list = metrics.get('noiseless_purity', [])
 		nkld_list = metrics.get('noiseless_kullback_leibler_divergence', [])
 		# Calculate and save data
-		calculated_results = []
+		calculated_results = data.get('calculated_result', [])
 		for result in results:  # Different runs
 			# get calculated results
 			calculated_result = gibbs_result(result)
