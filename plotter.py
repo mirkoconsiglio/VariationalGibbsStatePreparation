@@ -8,12 +8,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rc, cm
 from matplotlib.colors import Normalize, LinearSegmentedColormap
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from qiskit_ibm_runtime import RuntimeDecoder
 
 rc('font', **{'family': 'Times New Roman', 'sans-serif': ['Times New Roman'], 'size': 18})
 rc('text', usetex=True)
 
-scale = 0.6
+_scale = 0.6
+_colour_map = cc.cm.CET_C8s
+_colour_list = np.transpose(list(_colour_map._segmentdata.values()))[1]
 
 
 def forward(x):
@@ -22,7 +25,7 @@ def forward(x):
 
 
 def reverse(x):
-	p = 1 / scale
+	p = 1 / _scale
 	return np.array([i ** p if i >= 0 else -((-i) ** p) for i in x])
 
 
@@ -73,10 +76,11 @@ def complex_to_size_and_color(data, cmap, vmin=0, vmax=1):
 def set_bar3d(ax, xpos, ypos, zpos, dx, dy, dz, color):
 	ax.view_init(elev=30, azim=-40)
 	ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=color)
-	ax.set_xticks(range(1, 5), ['00', '01', '10', '11'])
-	ax.set_yticks(range(1, 5), ['00', '01', '10', '11'])
-	ax.set_zticks([0.0, 0.2, 0.4, 0.6, 0.8], [0.0, 0.2, 0.4, 0.6, 0.8])
+	ax.set_xticks(ticks=range(1, 5), labels=['00', '01', '10', '11'])
+	ax.set_yticks(ticks=range(1, 5), labels=['00', '01', '10', '11'])
+	ax.set_zticks(ticks=[0.0, 0.2, 0.4, 0.6, 0.8], labels=[0.0, 0.2, 0.4, 0.6, 0.8])
 	ax.tick_params(axis='both', pad=-2)
+	ax.tick_params(axis='z', pad=2)
 	ax.set_zlim(0, 0.8)
 	ax.xaxis.labelpad = 100
 
@@ -104,7 +108,7 @@ def rad_fn(x, pos=None):
 		return fr'${n}\pi/2$'
 
 
-def plot_density(folder, cmap=shiftedColorMap(cc.cm.CET_C8s, cycle=0.5), reverse=False, show=True):
+def plot_density(folder, cmap=shiftedColorMap(_colour_map, cycle=0.5), reverse=False, show=True):
 	if reverse:
 		shape = (2, 3)
 	else:
@@ -154,7 +158,7 @@ def plot_density(folder, cmap=shiftedColorMap(cc.cm.CET_C8s, cycle=0.5), reverse
 		if reverse:
 			ax.text2D(-0.05, 0.94, fr'$\beta = {int(beta)}$', transform=ax.transAxes, fontsize=20)
 		else:
-			ax.text2D(-0.17, 0.85, fr'$\beta = {int(beta)}$', transform=ax.transAxes, fontsize=20)
+			ax.text2D(0, 0.87, fr'$\beta = {int(beta)}$', transform=ax.transAxes, fontsize=20)
 
 		if reverse:
 			ax = axes[0, i]
@@ -181,7 +185,7 @@ def plot_density(folder, cmap=shiftedColorMap(cc.cm.CET_C8s, cycle=0.5), reverse
 		d = dict(left=0.05, bottom=0.17, right=0.95, top=1, wspace=0.1, hspace=0.05)
 	fig.subplots_adjust(**d)
 
-	fig.savefig(f'Bar3D.pdf', bbox_inches='tight')
+	fig.savefig(f'figures/Bar3D.pdf', bbox_inches='tight')
 
 	if show:
 		plt.show()
@@ -222,7 +226,7 @@ def plot_result_min_avg_max(folder, show=True):
 		plt.show()
 
 
-def plot_multiple_results_max(directory, show=True):
+def plot_multiple_results_max(directory, show=True, kld=True):
 	fig1, ax1 = plt.subplots(figsize=(12, 8))
 	ax1.set_xscale('function', functions=(forward, reverse))
 	ax1.set_xlabel(r'$\beta$')
@@ -272,9 +276,10 @@ def plot_multiple_results_max(directory, show=True):
 	ax6.grid(visible=True, which='both', axis='both')
 
 	markers = ['o', 's', 'd', '^', 'X']
+	colours = _colour_list[0::28]
 
 	h = None
-	for m, folder in zip(markers, filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
+	for i, folder in enumerate(filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
 		n = None
 		beta = []
 
@@ -303,29 +308,38 @@ def plot_multiple_results_max(directory, show=True):
 			purity.append(
 				np.min(np.abs(np.asarray(data['metrics']['calculated_purity']) - data['metrics']['exact_purity'])))
 			purerr.append(std_err)
-			kldivergence.append(np.min(data['metrics']['calculated_kullback_leibler_divergence']))
-			klerr.append(std_err)
+			if kld:
+				kldivergence.append(np.min(data['metrics']['calculated_kullback_leibler_divergence']))
+				klerr.append(std_err)
 
 			noiseless_fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
 			noiseless_purity.append(
 				np.min(np.abs(np.asarray(data['metrics']['noiseless_purity']) - data['metrics']['exact_purity'])))
-			noiseless_kldivergence.append(np.min(data['metrics']['noiseless_kullback_leibler_divergence']))
+			if kld:
+				noiseless_kldivergence.append(np.min(data['metrics']['noiseless_kullback_leibler_divergence']))
 
-		ax1.errorbar(beta, fidelity, yerr=fiderr, capsize=5, marker=m, label=f'$n={n}$')
-		ax2.errorbar(beta, purity, yerr=purerr, capsize=5, marker=m, label=f'$n={n}$')
-		ax3.errorbar(beta, kldivergence, yerr=klerr, capsize=5, marker=m, label=f'$n={n}$')
+		ax1.errorbar(beta, fidelity, yerr=fiderr, capsize=5, marker=markers[i], color=colours[i], linestyle='-',
+		             label=f'$n={n}$')
+		ax2.errorbar(beta, purity, yerr=purerr, capsize=5, marker=markers[i], color=colours[i], linestyle='-',
+		             label=f'$n={n}$')
+		if kld:
+			ax3.errorbar(beta, kldivergence, yerr=klerr, capsize=5, marker=markers[i], color=colours[i], linestyle='-',
+			             label=f'$n={n}$')
 
-		ax4.plot(beta, noiseless_fidelity, marker=m, label=f'$n={n}$')
-		ax5.plot(beta, noiseless_purity, marker=m, label=f'$n={n}$')
-		ax6.plot(beta, noiseless_kldivergence, marker=m, label=f'$n={n}$')
+		ax4.plot(beta, noiseless_fidelity, marker=markers[i], color=colours[i], linestyle='-', label=f'$n={n}$')
+		ax5.plot(beta, noiseless_purity, marker=markers[i], color=colours[i], linestyle='-', label=f'$n={n}$')
+		if kld:
+			ax6.plot(beta, noiseless_kldivergence, marker=markers[i], color=colours[i], linestyle='-', label=f'$n={n}$')
 
 	ax1.legend()
 	ax2.legend()
-	ax3.legend()
+	if kld:
+		ax3.legend()
 
 	ax4.legend()
 	ax5.legend()
-	ax6.legend()
+	if kld:
+		ax6.legend()
 
 	fig1.savefig(f'{directory}/fidelity_plot_{h:.2f}.pdf', bbox_inches='tight')
 	fig1.savefig(f'{directory}/fidelity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
@@ -333,8 +347,9 @@ def plot_multiple_results_max(directory, show=True):
 	fig2.savefig(f'{directory}/purity_plot_{h:.2f}.pdf', bbox_inches='tight')
 	fig2.savefig(f'{directory}/purity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
 
-	fig3.savefig(f'{directory}/relative_entropy_plot_{h:.2f}.pdf', bbox_inches='tight')
-	fig3.savefig(f'{directory}/relative_entropy_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
+	if kld:
+		fig3.savefig(f'{directory}/relative_entropy_plot_{h:.2f}.pdf', bbox_inches='tight')
+		fig3.savefig(f'{directory}/relative_entropy_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
 
 	fig4.savefig(f'{directory}/noiseless_fidelity_plot_{h:.2f}.pdf', bbox_inches='tight')
 	fig4.savefig(f'{directory}/noiseless_fidelity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
@@ -342,16 +357,210 @@ def plot_multiple_results_max(directory, show=True):
 	fig5.savefig(f'{directory}/noiseless_purity_plot_{h:.2f}.pdf', bbox_inches='tight')
 	fig5.savefig(f'{directory}/noiseless_purity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
 
-	fig6.savefig(f'{directory}/noiseless_relative_entropy_plot_{h:.2f}.pdf', bbox_inches='tight')
-	fig6.savefig(f'{directory}/noiseless_relative_entropy_plot_{h:.2f}.png', dpi=600, transparent=True,
-	             bbox_inches='tight')
+	if kld:
+		fig6.savefig(f'{directory}/noiseless_relative_entropy_plot_{h:.2f}.pdf', bbox_inches='tight')
+		fig6.savefig(f'{directory}/noiseless_relative_entropy_plot_{h:.2f}.png', dpi=600, transparent=True,
+		             bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
+def plot_multiple_results_max_extra(directory, extra_folder, show=True, kld=True):
+	fig1, ax1 = plt.subplots(figsize=(12, 8))
+	ax1.set_xscale('function', functions=(forward, reverse))
+	ax1.set_xlabel(r'$\beta$')
+	ax1.set_ylabel(r'$F$')
+	ax1.set_xlim(-0.02, 5.3)
+	ax1.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+	ax1.grid(visible=True, which='both', axis='both')
+
+	fig2, ax2 = plt.subplots(figsize=(12, 8))
+	ax2.set_xscale('function', functions=(forward, reverse))
+	ax2.set_xlabel(r'$\beta$')
+	ax2.set_ylabel(r'Purity Difference')
+	ax2.set_xlim(-0.02, 5.3)
+	ax2.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+	ax2.grid(visible=True, which='both', axis='both')
+
+	fig3, ax3 = plt.subplots(figsize=(12, 8))
+	ax3.set_xscale('function', functions=(forward, reverse))
+	ax3.set_xlabel(r'$\beta$')
+	ax3.set_ylabel(r'$D_\textrm{KL}(P || Q)$')
+	ax3.set_xlim(-0.02, 5.3)
+	ax3.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+	ax3.grid(visible=True, which='both', axis='both')
+
+	fig4, ax4 = plt.subplots(figsize=(12, 8))
+	ax4.set_xscale('function', functions=(forward, reverse))
+	ax4.set_xlabel(r'$\beta$')
+	ax4.set_ylabel(r'$F$')
+	ax4.set_xlim(-0.02, 5.3)
+	ax4.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+	ax4.grid(visible=True, which='both', axis='both')
+
+	fig5, ax5 = plt.subplots(figsize=(12, 8))
+	ax5.set_xscale('function', functions=(forward, reverse))
+	ax5.set_xlabel(r'$\beta$')
+	ax5.set_ylabel(r'Purity Difference')
+	ax5.set_xlim(-0.02, 5.3)
+	ax5.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+	ax5.grid(visible=True, which='both', axis='both')
+
+	fig6, ax6 = plt.subplots(figsize=(12, 8))
+	ax6.set_xscale('function', functions=(forward, reverse))
+	ax6.set_xlabel(r'$\beta$')
+	ax6.set_ylabel(r'$D_\textrm{KL}(P || Q)$')
+	ax6.set_xlim(-0.02, 5.3)
+	ax6.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+	ax6.grid(visible=True, which='both', axis='both')
+
+	markers = ['o', 's', 'd', '^', 'X']
+	colours = _colour_list[0::28]
+
+	file = list(filter(lambda x: x.endswith('.json'), listdir(f'{extra_folder}')))[0]
+	with open(f'{extra_folder}/{file}', 'r') as f:
+		data = json.load(f)
+	extra_n = data['metadata']['n']
+
+	h = None
+	for i, folder in enumerate(filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
+		n = None
+		beta = []
+
+		fidelity = []
+		fiderr = []
+		purity = []
+		purerr = []
+		kldivergence = []
+		klerr = []
+
+		noiseless_fidelity = []
+		noiseless_purity = []
+		noiseless_kldivergence = []
+
+		extra_fidelity = []
+		extra_fiderr = []
+		extra_purity = []
+		extra_purerr = []
+		extra_kldivergence = []
+		extra_klerr = []
+
+		extra_noiseless_fidelity = []
+		extra_noiseless_purity = []
+		extra_noiseless_kldivergence = []
+
+		for file in filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')):
+			with open(f'{directory}/{folder}/{file}', 'r') as f:
+				data = json.load(f)
+			shots = data['metadata']['shots']
+			n = data['metadata']['n']
+			h = data['metadata']['h']
+			std_err = 1. / np.sqrt(shots) if shots else 0.
+
+			beta.append(data['metadata']['beta'])
+
+			fidelity.append(np.max(data['metrics']['calculated_fidelity']))
+			fiderr.append(std_err)
+			purity.append(
+				np.min(np.abs(np.asarray(data['metrics']['calculated_purity']) - data['metrics']['exact_purity'])))
+			purerr.append(std_err)
+			if kld:
+				kldivergence.append(np.min(data['metrics']['calculated_kullback_leibler_divergence']))
+				klerr.append(std_err)
+
+			noiseless_fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
+			noiseless_purity.append(
+				np.min(np.abs(np.asarray(data['metrics']['noiseless_purity']) - data['metrics']['exact_purity'])))
+			if kld:
+				noiseless_kldivergence.append(np.min(data['metrics']['noiseless_kullback_leibler_divergence']))
+
+			if n == extra_n:
+				with open(f'{extra_folder}/{file}', 'r') as f:
+					data = json.load(f)
+				extra_fidelity.append(np.max(data['metrics']['calculated_fidelity']))
+				extra_fiderr.append(std_err)
+				extra_purity.append(
+					np.min(np.abs(np.asarray(data['metrics']['calculated_purity']) - data['metrics']['exact_purity'])))
+				extra_purerr.append(std_err)
+				if kld:
+					extra_kldivergence.append(np.min(data['metrics']['calculated_kullback_leibler_divergence']))
+					extra_klerr.append(std_err)
+
+				extra_noiseless_fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
+				extra_noiseless_purity.append(
+					np.min(np.abs(np.asarray(data['metrics']['noiseless_purity']) - data['metrics']['exact_purity'])))
+				if kld:
+					extra_noiseless_kldivergence.append(
+						np.min(data['metrics']['noiseless_kullback_leibler_divergence']))
+
+		ax1.errorbar(beta, fidelity, yerr=fiderr, capsize=5, marker=markers[i], linestyle='-', color=colours[i],
+		             label=f'$n={n}$')
+		ax2.errorbar(beta, purity, yerr=purerr, capsize=5, marker=markers[i], linestyle='-', color=colours[i],
+		             label=f'$n={n}$')
+		if kld:
+			ax3.errorbar(beta, kldivergence, yerr=klerr, capsize=5, marker=markers[i], linestyle='-', color=colours[i],
+			             label=f'$n={n}$')
+
+		ax4.plot(beta, noiseless_fidelity, marker=markers[i], linestyle='-', color=colours[i], label=f'$n={n}$')
+		ax5.plot(beta, noiseless_purity, marker=markers[i], linestyle='-', color=colours[i], label=f'$n={n}$')
+		if kld:
+			ax6.plot(beta, noiseless_kldivergence, marker=markers[i], linestyle='-', color=colours[i], label=f'$n={n}$')
+
+		if len(extra_fidelity) > 0:
+			ax1.errorbar(beta, extra_fidelity, yerr=fiderr, capsize=5, marker=markers[i], linestyle='--',
+			             color=colours[i], label=f'$n={n}$')
+			ax2.errorbar(beta, extra_purity, yerr=purerr, capsize=5, marker=markers[i], linestyle='--',
+			             color=colours[i], label=f'$n={n}$')
+			if kld:
+				ax3.errorbar(beta, extra_kldivergence, yerr=klerr, capsize=5, marker=markers[i], linestyle='--',
+				             color=colours[i], label=f'$n={n}$')
+
+			ax4.plot(beta, extra_noiseless_fidelity, marker=markers[i], linestyle='--', color=colours[i],
+			         label=f'$n={n}$')
+			ax5.plot(beta, extra_noiseless_purity, marker=markers[i], linestyle='--', color=colours[i],
+			         label=f'$n={n}$')
+			if kld:
+				ax6.plot(beta, extra_noiseless_kldivergence, marker=markers[i], linestyle='--', color=colours[i],
+				         label=f'$n={n}$')
+
+	ax1.legend()
+	ax2.legend()
+	if kld:
+		ax3.legend()
+
+	ax4.legend()
+	ax5.legend()
+	if kld:
+		ax6.legend()
+
+	fig1.savefig(f'{directory}/fidelity_plot_{h:.2f}.pdf', bbox_inches='tight')
+	fig1.savefig(f'{directory}/fidelity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	fig2.savefig(f'{directory}/purity_plot_{h:.2f}.pdf', bbox_inches='tight')
+	fig2.savefig(f'{directory}/purity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if kld:
+		fig3.savefig(f'{directory}/relative_entropy_plot_{h:.2f}.pdf', bbox_inches='tight')
+		fig3.savefig(f'{directory}/relative_entropy_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	fig4.savefig(f'{directory}/noiseless_fidelity_plot_{h:.2f}.pdf', bbox_inches='tight')
+	fig4.savefig(f'{directory}/noiseless_fidelity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	fig5.savefig(f'{directory}/noiseless_purity_plot_{h:.2f}.pdf', bbox_inches='tight')
+	fig5.savefig(f'{directory}/noiseless_purity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if kld:
+		fig6.savefig(f'{directory}/noiseless_relative_entropy_plot_{h:.2f}.pdf', bbox_inches='tight')
+		fig6.savefig(f'{directory}/noiseless_relative_entropy_plot_{h:.2f}.png', dpi=600, transparent=True,
+		             bbox_inches='tight')
 
 	if show:
 		plt.show()
 
 
 def plot_3multiple_results_max(directories, show=True):
-	fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+	fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=True, constrained_layout=True)
 	for i, ax in enumerate(axes):
 		ax.set_xscale('function', functions=(forward, reverse))
 		ax.set_xlabel(r'$\beta$')
@@ -362,9 +571,10 @@ def plot_3multiple_results_max(directories, show=True):
 		ax.grid(visible=True, which='both', axis='both')
 
 	markers = ['o', 's', 'd', '^', 'X']
+	colours = _colour_list[0::28]
 
 	for ax, directory in zip(axes, directories):
-		for m, folder in zip(markers, filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
+		for i, folder in enumerate(filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
 			n = None
 			beta = []
 			fidelity = []
@@ -375,10 +585,10 @@ def plot_3multiple_results_max(directories, show=True):
 				beta.append(data['metadata']['beta'])
 				fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
 
-			ax.plot(beta, fidelity, marker=m, label=f'$n={n}$')
+			ax.plot(beta, fidelity, marker=markers[i], color=colours[i], linestyle='-', label=f'$n={n}$')
 
 	for h, ax in zip(['0.5', '1.0', '1.5'], axes):
-		ax.legend(title=fr'$h = {h}$')
+		ax.legend(title=fr'$h = {h}$', loc='lower right')
 
 	fig.savefig('figures/fidelity_statevector.pdf', bbox_inches='tight')
 	fig.savefig('figures/fidelity_statevector.png', dpi=600, transparent=True, bbox_inches='tight')
@@ -481,14 +691,48 @@ def plot_scaling_layers(directory, show=True):
 		plt.show()
 
 
+def plot_shots_scaling(file, show=True):
+	fig, ax = plt.subplots(figsize=(12, 8))
+	ax.set_xlabel(r'$\beta$')
+	ax.set_ylabel(r'$\alpha$')
+	ax.set_xscale('log')
+	ax.grid(visible=True, which='major', axis='both')
+
+	axins = inset_axes(
+		ax,
+		width='60%',
+		height='5%',
+		loc='lower left',
+		bbox_to_anchor=(0.113, 0.23, 1, 1),
+		bbox_transform=ax.transAxes
+	)
+	cb = fig.colorbar(mappable=mapper(0, 50, shiftedColorMap(_colour_map, start=0., stop=102 / 256)), cax=axins,
+	                  orientation='horizontal')
+	cb.set_label(label='Eigenstate', size='large', weight='bold')
+
+	with open(file, 'r') as f:
+		data = json.load(f)
+
+	colours = _colour_list[0::2][:len(data)]
+
+	for i, d in enumerate(data):
+		ax.plot(*zip(*d), marker='d', color=colours[i], linestyle='-')
+
+	fig.savefig(f'figures/shots_scaling.pdf', bbox_inches='tight')
+	fig.savefig(f'figures/shots_scaling.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
 if __name__ == '__main__':
-	# plot_multiple_results_max('qulacs/data/SciPyOptimizer')
-	# plot_multiple_results_max('qiskit_runtime/old_jobs/ibmq_qasm_simulator_ibmq_guadalupe')
-	plot_3multiple_results_max(['qulacs/data/extra_extra_statevector_h_0.50',
-	                            'qulacs/data/extra_extra_statevector_h_1.00',
-	                            'qulacs/data/extra_extra_statevector_h_1.50'])
-# plot_3multiple_results_max(['qulacs/100_runs_0.5', 'qulacs/100_runs_1.0', 'qulacs/100_runs_1.5'])
-# plot_density('qiskit_runtime/jobs/ibm_nairobi/n_2_J_1.00_h_0.50_shots_1024')
-# plot_scaling_shots('qulacs/scaling_shots')
-# plot_scaling_iter('qulacs/scaling_iterations')
-# plot_scaling_layers('qulacs/scaling_layers')
+	# plot_3multiple_results_max(['qulacs/data/statevector_h_0.50', 'qulacs/data/statevector_h_1.00', 'qulacs/data/statevector_h_1.50'])
+	# plot_multiple_results_max('qiskit_runtime/jobs/ibmq_qasm_simulator_ibmq_guadalupe', kld=False)
+	plot_multiple_results_max_extra('qiskit_runtime/test/ibm_nairobi',
+	                                'qiskit_runtime/old_jobs/ibm_nairobi/n_3_J_1.00_h_0.50_shots_1024')
+	# plot_density('qiskit_runtime/jobs/ibm_nairobi/n_2_J_1.00_h_0.50_shots_1024')
+	# plot_shots_scaling('data_shots_scaling.json')
+	# plot_scaling_shots('qulacs/scaling_shots')
+	# plot_scaling_iter('qulacs/scaling_iterations')
+	# plot_scaling_layers('qulacs/scaling_layers')
+	pass
