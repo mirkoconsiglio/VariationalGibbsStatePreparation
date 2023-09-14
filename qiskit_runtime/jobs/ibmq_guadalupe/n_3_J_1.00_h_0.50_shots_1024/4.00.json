@@ -1,0 +1,119 @@
+{
+  "metrics": {
+    "exact_purity": 0.514603318756586,
+    "calculated_fidelity": [
+      0.4183993849747971
+    ],
+    "calculated_trace_distance": [
+      0.4180101473396371
+    ],
+    "calculated_relative_entropy": [
+      1.2331789385168153
+    ],
+    "calculated_purity": [
+      0.309539571220493
+    ],
+    "calculated_kullback_leibler_divergence": [
+      0.4098411227936075
+    ],
+    "noiseless_fidelity": [
+      0.6197137069774686
+    ],
+    "noiseless_trace_distance": [
+      0.23557499588990352
+    ],
+    "noiseless_relative_entropy": [
+      1.6642858801283429
+    ],
+    "noiseless_purity": [
+      0.9181258052353676
+    ],
+    "noiseless_kullback_leibler_divergence": [
+      0.8641698002369855
+    ]
+  },
+  "metadata": {
+    "job_ids": [
+      "ch5orn81n9kgjgh8rrn0"
+    ],
+    "backends": [
+      "ibmq_guadalupe"
+    ],
+    "n": 3,
+    "gamma": 1,
+    "h": 0.5,
+    "beta": 4,
+    "ancilla_reps": 1,
+    "system_reps": 2,
+    "optimizer": "SPSA",
+    "min_kwargs": {
+      "maxiter": 300
+    },
+    "shots": 1024,
+    "noise_model": null
+  },
+  "calculated_result": [
+    {
+      "params": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RqGFjqaOgq1CuQDrnXtXP3L4q7ZK6zzZudv+mD/7ov4nr8LL+4/FzLtgcxVZocp/kxZPDkMDpVLreWnz2M4IHOq5+3WdywOWb3Z4nm27A68uzujs0WFD2jt1n/cx7XOXjtgbzL77C/2JWoCAhPdOR3+PT4o2s18cv/UGjvfyRoMDovvuOstmsB4YM6tbCPdhU/3v1Nf26M4ndXh3v3IuJOCj+0B4mRbYA=="
+      },
+      "cost": -2.1742031031033666,
+      "energy": -1.7360971906885818,
+      "entropy": 1.7524236496591392,
+      "rho": {
+        "__type__": "ndarray",
+        "__value__": "eJydU09IVHEQXg9CeAgKhIg9vNtLWATBZAnh6xRd/EO4kankopuLhra7opYKryhNKHd1lSx13UJFJMLWQES3qdN2ki5dPIRg3TwqSB3szbzHi+boXIb5fW9+33zfb166NlRT31jk6/MNmu2RRFvcvGKY1W0VVWbAMO/2xHvj4e47PfH2CAPXwvcSEfs8EQ3fj9j1pWDACJYFjGHjtFFSWYj5C+E8fG7M7wfH9wfeY2aVI0mvuT5eQXPIju+zJPnyMq5zDg3TbxsOns0gKnUfPeBUOoVNbu+cwEW+1JpHjeAvSUjWNly+Xig+7NjjxBq+ePNIpDZd/CH6bdg/ug6riIGrlOPjkhU0CW+a/nC/38KI8HU4fK1v3fuiTs7mUSv4cyh9UHyOfqPgzXPIenfe4IxUj1Anfa9QLHXa/a7B4bUWUM7+VrzDeanH6BZ//2sLNzkfLUP5qfVB8dEHnufrp//9+Tzj1FaK1mXup/h5whGjbr52ehKdch7DBPdfyOG2+JXS7wflp9ZHig+77PfBR2+eOfEzi7zwvcBj1lNI45ygo47+oyXcEL5nUPui30/7qfVB8dEJ6/mR8+bJyHdDtOj0Udc4NyTRKPc/IbWfUPtC6v2g/CSlD4oPScY3tr159ljfXAYtojsL9T+Q2k+9L6TeD8pPrQ+Kj75xXflvn/8CS4Ki5g=="
+      },
+      "noiseless_rho": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AIuh3uXz/7lv2XPAAW2VjmRtemT9sD4VuWzfLMz6uH8O/qTW+O8L8PVb13K8flHSQpcPsq02V9xwjG4PKvtpewyJYT61MSgezslZ8HVo9vnwD3JI0K1FK7+cy3DaR9uYzjfxVPdwq2xF66+I/128dEmcbj8c1+P5bfrmuDydxPFEi4I98H5U0ureX4H+sDVo/sP3T6f0LOX3q4rhPN/9WyTtUuugqs34dePj82NhcvvWDL9hteBArh8t49n+HQlhPonnKKBG3wi4erRwxPdf+j29dzlklq88Bxc/QWRpI13QyLh8sw1O5SP3jgEl7+RxME/4SpCPXfSPMVftlPg6tHjDz080f2Hbp/FVyWnfqskuHyPdvOKq/zucHmp5bfLg2vD4fzOlSIWvROM9sP46OkFPf7QwxPdf+j2+b6WY1Rn3gGXX/c5OblD+zCcv1lK5epK8w64evT0iZ5e0OMPPTzR/YduH5d47fYlSufhfIda1pWZtyfD1aPnB/T0iZ5e0OMPPTzR/YduX7P1qu4pwcVw8wAF/wja"
+      },
+      "sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACubY8t+h7v2GGfJ3O8UOb7ffviUCC4utB+H4h/fJ39PpC8xWr7bJD41hP28X0ggen2YH0WS+wBY9w8OA=="
+      },
+      "noiseless_sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACucjWXhZ2N3PaB5RPF8tdU228xja86Fptv/3DjPvOYuyftjgl2JTbY+toryYbv8Vz2zn6dYbLxh7BZ9u6HNF7IO5XYAwCvJDcR"
+      },
+      "eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACu+L7HFn2Pp9sXhwLB1YX220BciyX2+8D0avt9MscLZY6vg4jv2GGfDVK39YR9Hkj8+317AGJUPDg="
+      },
+      "noiseless_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuhxv3mcfcPWlXruaysLOR2/6YYFdig62v/RbT+Kpjsfn27oc0Xsg7ldgHlk8Uy19Tbb/OMNn4Q9gseyXZ8D2ey97ZAwDMDDcR"
+      },
+      "hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFAAu/YeyMkGMDAdmmEyw0jb9s3/mjyda3/J/7k+5q8/e3vV9//lZ/lmXeL7vD1lnvy3/ztf9Zt7H7m2J/ro/b07iPo+Dn/cDAExSPuI="
+      },
+      "noiseless_hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACu50UKkhv9GA9kOFw94qn6Zf+7cw6CC2a83d8y+8uGy5Kv9ydM+nR1Ku/L/TLTFq7KOntr/4xDBqe6Oi/ZzzFbP4Pz43t7ALRhP+o="
+      }
+    }
+  ],
+  "exact_result": {
+    "hamiltonian_matrix": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AIuBjD4sZ8BFTTg538goB5dnpB6dP4DEvWTaj6p5qG7h9r2kxw+9rQ1n1T9hMKH1u4jFD4Dnn4IxBel4UOq+3/A3QMA+7tfFw=="
+    },
+    "gibbs_state": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOgoWmjoKtQpkAy6lFBsV9j2X7BnQwIvHvxS/LzwKF38G5T9DE4eB85P3qZ3g22//1sDnzREgDRNH58NA2693byz4tmCog5lDrH50d8LA5UfpVlt+7YCLX7/mog3iw2h09TB70O1Ddw+x9t9AswfmHnRxYvXD+JfQ/AUDTVD3NKGFKzofBnTFzabfebbSHgA2Xq8E"
+    },
+    "energy": -3.196272193751204,
+    "entropy": 0.6784854296954619,
+    "cost": -3.3658935511750694,
+    "eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuj3dLt3zy/mSr8l7so7ibnl0354xvILr0Jav45Muddhp7rcB0mWlQcdXtRXbtAcVCH9pv2b/Z0/KNdc8jewALtDoz"
+    },
+    "hamiltonian_eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuUDWdEtvbnAde/bi0sl6L80BA6iGn65vP2v/6DwL37fkZQOCBPZj7/7s9I5j/w/41WD2jAwB/xDxu"
+    }
+  }
+}

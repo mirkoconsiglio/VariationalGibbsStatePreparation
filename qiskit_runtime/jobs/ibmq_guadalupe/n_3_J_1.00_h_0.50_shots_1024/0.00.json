@@ -1,0 +1,119 @@
+{
+  "metrics": {
+    "exact_purity": 0.125,
+    "calculated_fidelity": [
+      0.8960981661717919
+    ],
+    "calculated_trace_distance": [
+      0.12701833167113596
+    ],
+    "calculated_relative_entropy": [
+      0.23455100739333923
+    ],
+    "calculated_purity": [
+      0.1754449208577481
+    ],
+    "calculated_kullback_leibler_divergence": [
+      0.0743066615861196
+    ],
+    "noiseless_fidelity": [
+      0.8712976536377064
+    ],
+    "noiseless_trace_distance": [
+      0.12449181842081035
+    ],
+    "noiseless_relative_entropy": [
+      0.2935892300788647
+    ],
+    "noiseless_purity": [
+      0.1882443317384465
+    ],
+    "noiseless_kullback_leibler_divergence": [
+      0.29358922994372566
+    ]
+  },
+  "metadata": {
+    "job_ids": [
+      "ch5orm05ngm0qhfk3mjg"
+    ],
+    "backends": [
+      "ibmq_guadalupe"
+    ],
+    "n": 3,
+    "gamma": 1,
+    "h": 0.5,
+    "beta": 1e-10,
+    "ancilla_reps": 1,
+    "system_reps": 2,
+    "optimizer": "SPSA",
+    "min_kwargs": {
+      "maxiter": 300
+    },
+    "shots": 1024,
+    "noise_model": null
+  },
+  "calculated_result": [
+    {
+      "params": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RqGFjqaOgq1CuQDrmOeny0ffGQ+sG2plfvml+wHTidF9zwI+LV/CrvR7qIyjgPztRnSjPqu2qvarSq4W/XJft1ZJfnDnFwO0/jXMbLs4j5wIyz7UII/+4Hz/5b6mqvc2h8ZsjPa4C7bgTU39tt1bX2/3/9K3/6wxDf21kLcF5NT/9tPVp2Z8OnjX/tp5+7X6l/lcHC5V+6y7jKLww/95k8T41kcAAcuYsQ="
+      },
+      "cost": -20663428095.82838,
+      "energy": 0.0036576236323023134,
+      "entropy": 2.0663428095832037,
+      "rho": {
+        "__type__": "ndarray",
+        "__value__": "eJydU01IVFEUnlq0EBFauBCFHkS8jFloogwifNPCWkjjLBxEEHQan4m/+aYUMZmgmlCaHxh1REwS8YdBUDdqujijCGKrNkGrkNy5DAlcpL1z3+MFZ+lZzJ177nfP933nnpcJhJ4GW254hjyjeocRjZh6rabXRSprdK+mdw6YL81wf9uA2WHwweNwb9Sw8tGu8AvD2t/3eTVfuVcb064bBds5Kx7uw+NEbfLUl4y8o0XO5+bp1tFg2dHgKPVZv2UfMljj9Nks3VboERTxoq0iwfdOu7GszqdtXG4YzSErpubx54pj3OZpXyebLQXBhye8bzhw9SypepP0W903yO/g8yxrLk43GZTP0gUfxxIo5P3JCo75vDVr1/HPOXwm7XK9Bymcq3op6Y8EH0LMl9lx9dxjfGWG6thX6D2aeCmeokOF77F53kw4+Bna4npfP8NjMkEjBRU+TfXq/hCJfkp/EHxUwrAKcvXY8czx146E6mMMSk5sFr/Un9eOX9PWU7AAVd/SI95P9pOEPwg+usPLxparp4rr3M3irdI7Rj+tqr7AJ5Syj800nnP6e5y+Oe8p5oXE+8l+Sn8k+PCI93uHrp6Amr9J/FX4OH6wnqI4Vat7aRLzSWJeIN5P9hPCHwk+0jn/Je/q+cht3hmnS2f+xPcg5xNiXiDeT/ZT+oPgwyvGL/2fn3//Y/HU"
+      },
+      "noiseless_rho": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AKuWTaPvySdXWrPAAUzNBRWHWhM2APjP6lLeJro7wfnzxXW6dxc2QdXv2LtG0afjXFw+bvz7tfVLJwJl590P9PifEMpnC8mxWMz6UYQXD26fSIiIlJTGU4h1BdY3V+7YOV+GH99/2qLk1cnwtU3fImVmnh4C1x9feX7ysP3GuHy99cxi56sq4fzhU2vsi0JWAJXj+4/dPueWZ1IFT9+FK5eTzpV0ZqnwQbGP+l+PWT23Dlw+cdSIsWPd6bD5Q2nXmt6ZGgA59uXyBoIiSyDm48enuj+Q7dv78drG46lbYarV152wULhVBNcfXbk19gSm3lw+ZzK21ZKWxbA7YvTZ3r1+0AbXD16/KGHJ7r/0O0T3RfhsvDWXrj85/mP5/9jrYPLf766f+ffN1Fw99vwOAhueNkFdw96ekGPP/TwRPcfun3ZCzacKWg6ApdffH9O8sqNm+H2vZuiqdbM4AxXj54+0dMLevyhhye6/9Dtm14dpnLzGCJ8lLc7mz8UikGkN7T8gJ4+0dMLevyhhye6/9Dt8wh7d+lSDcI9APZfHiw="
+      },
+      "sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACunauA4NAB+8WPLfoea+yzTwsFgtzT9ncKZY4Xfjlq3w6kZLZvt78NUse1yv4+SPzMHvtUkDrWPfYAi0c74Q=="
+      },
+      "noiseless_sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuvH9S2+oXz7DXqD066YbpMnvWa2neH5hO2h++1ycrdvis/b0DXQs3xG+3TzyT7hmst9H+G9OXssvWm+y3KQY+nTzzoj0AT5E8Aw=="
+      },
+      "eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACu26uAgGuVfbvM8UKZ7dvtU0OBgHWP/f1CoMCZPfaLH1v0PdbYZ78TpO7QAfs7IPEvR+3TQOpyT9sDAEjXO+E="
+      },
+      "noiseless_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuvH9S2+oXz7DXqD066YbpMvvEM+mewXob7b8xfSm7bL3J/t6BroUb4rfbs15L8/7AdNL+8L0+WbHDZ+23KQY+nTzzoj0ATtE8Aw=="
+      },
+      "hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuB6v5llyd9vmgQ011C9PMZwcbNj64rHRv80GH5g1zlfqOOm64PaF384qLjg2fs3Pk91513LFFtHGiz3PHRyVH30j/Y3ACAOvIP5Q="
+      },
+      "noiseless_hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFAAuJcvDwZGP/hxcwntzFcuibwdT5Py7p6p/OMhwePU1s8QXjnN+9Pz4X/DVseFcSaLqiu+Oz+bf3/DpC7PTvILbQXHv+ZwArb4/Jg=="
+      }
+    }
+  ],
+  "exact_result": {
+    "hamiltonian_matrix": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AIuBjD4sZ8BFTTg538goB5dnpB6dP4DEvWTaj6p5qG7h9r2kxw+9rQ1n1T9hMKH1u4jFD4Dnn4IxBel4UOq+3/A3QMA+7tfFw=="
+    },
+    "gibbs_state": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOgoWmjoKtQpkA64rflwMDAwH7BnQgEnxy5v3a1bbwvjGUL4xmjgMzMlnBpuDSx+6+sdL7qKIw/TBzCFWP7p9MHBC4ef////326OrR7cX3X5089Ddg24esf6DuecRmjix+mH60P1FyH/o9sFARNJrsDkA7+a1CA=="
+    },
+    "energy": -3.750000310276391e-10,
+    "entropy": 2.079441541679836,
+    "cost": -20794415416.798363,
+    "eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACu0KZH////328flvQaTEdC6RMKP8H0KSjdc/4PmBacJ8rAwHDA/pGpGJgGAMg5QlE="
+    },
+    "hamiltonian_eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuUDWdEtvbnAde/bi0sl6L80BA6iGn65vP2v/6DwL37fkZQOCBPZj7/7s9I5j/w/41WD2jAwB/xDxu"
+    }
+  }
+}

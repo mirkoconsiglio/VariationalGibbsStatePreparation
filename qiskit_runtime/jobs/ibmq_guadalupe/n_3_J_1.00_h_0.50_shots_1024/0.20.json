@@ -1,0 +1,119 @@
+{
+  "metrics": {
+    "exact_purity": 0.1490311604153375,
+    "calculated_fidelity": [
+      0.8377181236047316
+    ],
+    "calculated_trace_distance": [
+      0.1563891106456561
+    ],
+    "calculated_relative_entropy": [
+      0.4138782646980097
+    ],
+    "calculated_purity": [
+      0.18375488563820233
+    ],
+    "calculated_kullback_leibler_divergence": [
+      0.025284322242928634
+    ],
+    "noiseless_fidelity": [
+      0.7641086438851198
+    ],
+    "noiseless_trace_distance": [
+      0.15883317645042697
+    ],
+    "noiseless_relative_entropy": [
+      0.8359854449739375
+    ],
+    "noiseless_purity": [
+      0.20049846132335375
+    ],
+    "noiseless_kullback_leibler_divergence": [
+      0.28977997491946794
+    ]
+  },
+  "metadata": {
+    "job_ids": [
+      "ch5ormca08u1b97p3l10"
+    ],
+    "backends": [
+      "ibmq_guadalupe"
+    ],
+    "n": 3,
+    "gamma": 1,
+    "h": 0.5,
+    "beta": 0.2,
+    "ancilla_reps": 1,
+    "system_reps": 2,
+    "optimizer": "SPSA",
+    "min_kwargs": {
+      "maxiter": 300
+    },
+    "shots": 1024,
+    "noise_model": null
+  },
+  "calculated_result": [
+    {
+      "params": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RqGFjqaOgq1CuQDLsa1V+13rfy3385jwYf5zB/tpaZwbJq2m8XhQvW+3yV7X+/fdPuu3dqpr+2f3pivYpfDeGBf4GPjFyJX7A30/7v6fPi1f1nM0eordz7u7wgtsDbz+rC/80KH/JGWG/tfxPxlY3rNe0DL81K/SMQT+75Q3QSOyl/712yespfz4+v9Vw4bHGe6wOlQ6TLtUviH//YPpV/l7NW6vR8ARqlqpQ=="
+      },
+      "cost": -10.345917102366244,
+      "energy": 0.02939019500397353,
+      "entropy": 2.0750614594740435,
+      "rho": {
+        "__type__": "ndarray",
+        "__value__": "eJydU0soRGEUHttJs7CUdMviorGwoEnqlAXl1SzIY0FjzCTJmDsSDWZWgxqvGUIUNUQUsVLkDAtjaSOWaraysZHymHP+2506S2dz7vnv3/d95zvnT7Z3trl7CmwTtrA+6At5Db1O0+u91bW6U9P9AWPc8Iz2B4xBH/1o9IyEfLnz0JBnzJery11OzVXh1Ga0/4Y9UpIJljzfgc2MxaxrKftyjgnKrgU8PabYhjMql6bhl2MWfjiH4JNzBEvHCagJujop1vGbz+PYTWVNysTvuFZ5HzlFYyD44IHo7FeWnkOqh3fw8YQ+mqGB8J42sSzHljlP4gEdV65hL/N6wMH3BpDUZi+3FU501+Sbw0vGS8IX6wvL/lDwIfujpy09z3zvCJTeKBaqvnCU+cOKJ232m96CFj5PgEE4c3vwznx+ZP8iSekniv5A8IGdcPfy81JxZPKuQquph31/SmAj88+AYfqj5rKFgWUCdMv5ST9lfyD4sJjy642l5+I+pzs4Ca+sO4Z9vA4pVTvi+MF8Y6j8n0KxL3J+0k8U/YHggzfKfbeWnjaGX4EO5tmAHs4p2GH8Bbmf9WJf5Pykn7I/EHymb9eWniqS6V3FIppvcB7Ee5D7KfcFxfykn7I/EHwYpz4y+ff1B6ey7QQ="
+      },
+      "noiseless_rho": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AKufDFFAyOzQ/YMUPDQL8nufl+JDYx/eveUtrgqUzi/d4NConjYLrj6VpGVvjOLveHyISeeKqZunbcfxj8e78O25MdquHqrz8va/EWb4erR7fu5dXvDpT9H4OqPrJCMn/5sA5x/UCBSeldT1B4Y3/j23pPr+BfA5TMEu5Q29NfBzVt2LlveJxNhfszkZckqJhvg7kP3H7p9OYtO2eQ83gjnK37ZtEN0UgbcftawCoeF6xbCzVOzNPiwIDADbh6DVeZ+08NBcH7nU8VYKdH1cPXo4YnuP3T7esX37rmdiogv3UsXrYICzODyzD49yc+FuuDmv72rm/jOowMRnjoa7m+2IcIfPf7QwxPdf+j23epSbitecwCu/v+ve5dlvybD5ZuW1q15ehYRHs51x5LEN66Gm4eeXtDjDz080f2Hbl8Ud5/CkimI+FOWTv22yHQBXH2PTJWi5JQIuHr09ImeXtDjDz080f2Hbt/TI/NKFwkchKtPyCxuz2iNgKtHzw/o6RM9vaDHH3p4ovsP3b4LJb/TGfMOw90DAK2wECA="
+      },
+      "sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFAAu/eOFMscLD9lfBlE2h+yVQHzOC/Z2IDpwp/0fi77HFut2238D0Xrb7Z+A1M3ZbZ8G5PYlr7UHABInOpY="
+      },
+      "noiseless_sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuU/4OCa/rVtk7ukzXOyFx2H5a27QL/aLb7UUTPptm2s+zL6y4oceuF24vv5Nnk/vNA/Z7478kcEZftNd9/ndzx+yL9gDYADki"
+      },
+      "eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACutL7HFn3Ja+2/WQAZetvt7Y4XyhwP3Gn/BEgVztlt/wckvm63/WUQ3+aQvT5IvvCQvRKI5rxgDwA89zqW"
+      },
+      "noiseless_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuwoobeux64faiCZ9NM+3n2Z/yd0h4XbfKflrbtAv9otvt5XfybHK/ecDe0WW63gmJw/Z7478kcEZftNd9/ndzx+yL9gC3+Dki"
+      },
+      "hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuJ22aLMaZ3Acavl2N85Z+uj/gJOcNJq/H+xV4DuvNvv7C/gN339Y6u5f2CxLDnu/v/Wz/IfZdudfcX/ZLOm/uq+3idwAAN9s8fA=="
+      },
+      "noiseless_hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFAAuMw7r2eqq/Adkjv1nnTyR78CG2YfSf656tZ9hS4Lw1eZT+w3alkRM/vTLfhrvrPRr1wUdcgT46tbzyTpI3XDTtys1cwAA+MM39g=="
+      }
+    }
+  ],
+  "exact_result": {
+    "hamiltonian_matrix": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AIuBjD4sZ8BFTTg538goB5dnpB6dP4DEvWTaj6p5qG7h9r2kxw+9rQ1n1T9hMKH1u4jFD4Dnn4IxBel4UOq+3/A3QMA+7tfFw=="
+    },
+    "gibbs_state": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOgoWmjoKtQpkA65qhv3BC6SP2jOggUWPy9qf2S6Aiy+E8heiicNA2lqXmF8JB+01rLbMUlNHyKPzYcBhXhvTd9/ZcHFNqDqYOYT020P143LPj+X8XlMW7YGL/9p4Z1eE5mx7GI2uXgtqjxaafejuQXc/ejih24fuHnRxXO5HVwfjo/sLPTzs0cIVnQ8DW79tC1CZvd0eAGl8mMw="
+    },
+    "energy": -0.8436790803602225,
+    "entropy": 1.9924834056581977,
+    "cost": -10.80609610865121,
+    "eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACubW2nSjcZbbYvqY6Qtrux1b4GSm+11c9OXLfLfgeUPrlfaUu62h77MibR6cdWnLYXWJhzlkfljD0A9Ww4Zg=="
+    },
+    "hamiltonian_eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuUDWdEtvbnAde/bi0sl6L80BA6iGn65vP2v/6DwL37fkZQOCBPZj7/7s9I5j/w/41WD2jAwB/xDxu"
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "metrics": {
+    "exact_purity": 0.27695519291630366,
+    "calculated_fidelity": [
+      0.7448676606524594
+    ],
+    "calculated_trace_distance": [
+      0.24557593708508652
+    ],
+    "calculated_relative_entropy": [
+      0.6092112380098306
+    ],
+    "calculated_purity": [
+      0.19819618743143042
+    ],
+    "calculated_kullback_leibler_divergence": [
+      0.07558761287910941
+    ],
+    "noiseless_fidelity": [
+      0.7290871798949006
+    ],
+    "noiseless_trace_distance": [
+      0.27090275635569216
+    ],
+    "noiseless_relative_entropy": [
+      1.2628918521268364
+    ],
+    "noiseless_purity": [
+      0.5976866173083766
+    ],
+    "noiseless_kullback_leibler_divergence": [
+      0.8053199029259764
+    ]
+  },
+  "metadata": {
+    "job_ids": [
+      "ch5ormhpleju5696gpqg"
+    ],
+    "backends": [
+      "ibmq_guadalupe"
+    ],
+    "n": 3,
+    "gamma": 1,
+    "h": 0.5,
+    "beta": 0.5,
+    "ancilla_reps": 1,
+    "system_reps": 2,
+    "optimizer": "SPSA",
+    "min_kwargs": {
+      "maxiter": 300
+    },
+    "shots": 1024,
+    "noise_model": null
+  },
+  "calculated_result": [
+    {
+      "params": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RqGFjqaOgq1CuQDLsWkG6tz97Af2KW9bNeG+bPslV9165YUMBy4Mb3s2TP14/ubn6W+UG9mc+j/uch4U6ioQ8NB0fnh59/uv3xOavLP+i/2lXo3mdVnX7HfUe+Vt8xmo326/uTPU3O+7q81WsSmZczhMH3L6v1p9z/uN9xlwnVw78f9mY7LXqzbJXDgqvU/p3+3BBymK2xv2f7/y/7nf558e/Hyiz0AIYBqqA=="
+      },
+      "cost": -5.354052799569642,
+      "energy": -1.5832092303687688,
+      "entropy": 1.8854217846004364,
+      "rho": {
+        "__type__": "ndarray",
+        "__value__": "eJydU89LFHEUH0kiOoQHC6EV5jYFS9BFxjI+C4VBVHhwjYKQdZ2QJdrdWRMtwqKWxGJccDFMKcExKrwsilgkz+jHCh3LW3hI0f+hyzrvzTLBO/YO8/2+933vfT7vx0xeTV7put5gDBn3rX6nkHatM6bVkT7dZsVN61bWHXRTd3qzbr/DD52p2wUnsBcGUjkn0E/YcdM+GTcfmP8rh6e3bW+7ZQNGXf4Eqv2qgnG2rz6ls4HqpecwxrrdCaM7GchREueHJfqWj1Xzv2dxTAxPaOk9yxSusdvdBWrp4ctNapL3Z2GcOR+exigUHi4x3oHPEZ9G/qy/xCfJm0MugItdnMIy48aGsSH2e/hbCwSvqZ3jz/twGDb5vI7TF+ZLlPFO/H1qEIOv6yOFR8dZn1uO+DQHqNVKiRI7oX+f4JRwWc6ROk6p7p/BiPD16IPkm6CM+D2Cy8dmkVQ/dX2k8HCE/br+9SfEmwnjE5O0yDCZebwVvEGS9Js+drk/o0Wsc96OBTokAWU9P91PqPpI4aFVeK9EfLaYb/4CfjBdLwdP5jpDv9g8+5huSJ4s9mpCCGpfoOan+6nrg8KjkM9axOegzPMFZA2TRXyXvvpUZl7D03o/ofaF1Pyg+kmqPig8qjGvUx8jPuc44MsbEhrVIf0/kNpPqH3R84PqJ6n6oPDwky/xrxGffRLQp7s="
+      },
+      "noiseless_rho": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AKuWVXZZ5ao37JngIL3UbIc+xMcbWD8Z3+PFkR3x+2B8SdZ/fV3FToEV//S7miUl38ZXP2uObFLVz46C5d33T51o8Pxc3D++UXPeLsWBcHVo9v3dG/gpedpk+DqPfnvmTo9XgDnz9f0mSDZYwJXXyG0ykJ36kK4fHvs/I8373jC5fNWBUfnCDDD3a9SWji1OHkKXD26/9Dte5rbvmvxmW1wfirjxJaZ2b5w87uMH2y48hwhH7fAo2AupwbcvIX/NtR1ykfA+eVNPPZ7ZTbC1aOHJ7r/0O3T6I3f9i17NVz9gQ0182z+ZcHlV81gu25gvRUuP6+WJX7R/C0I9ydfPz41KRmuHj3+0MMT3X/o9vFIzdDMsNwOl18w03hjcWQBXH4GU/2vk/cz4Py6R4udC80Q/kdPL+jxhx6e6P5Dt49D7X5BoPVBuDyz/T2vieUI/vy3X+LWzA6Fq0dPn+jpBT3+0MMT3X/o9n0NWzuHR/AwnG+7oaFAPUwcrh49P6CnT/T0gh5/6OGJ7j90+3x2rvp37+kauHoANdYP3Q=="
+      },
+      "sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFAAuveXnWjeaXrK/EDotPqRmib2aRNJnKa3r9n0T5wU3d82yd+k2KUnZtdNeSqjEZd65mfZq7yy3rv942D6gxien6mWFPQDuuzkp"
+      },
+      "noiseless_sigma": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuo/4iDL6/ku3XZs70Si7ytP+nFHA+jafN3lzsV0TdT0l7vjm5k2bynbcPCn47Qduo2f6D84lesZrn9vlGPu+0OD/aAQCbDDbK"
+      },
+      "eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACugBqfnKqXFfZSQiUu887NtO+bOC+4uWuW/YXQafEhNUvsXbpNSlJ27bRXe2e5df3Hw/Z6y8+1bjS9ZK8mkfRZSuu6PQDrczkp"
+      },
+      "noiseless_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACufCOfd1qcH+3MxX5F1P2UtF+bOdMrucjT/qi/CIPvr2T7oOC3E7SNmu3/KQWcT+Nps+ebkztpJt95+w/OJ3rFap7bAwCSFDbK"
+      },
+      "hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuiKpZETWTuA5kPgnaumsH24E3PHtVK3V+7Rd4o1Y53+PF/hlWOrcmhHy0V6mXXhNj+d8+5ncoVw8/g8Muy6cFRunCDgAsdTja"
+      },
+      "noiseless_hamiltonian_eigenvalues": {
+        "__type__": "ndarray",
+        "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFAAuu5rXVW8/CB1w36rAHKzDcqBiTnN99mpeB4Nv8/ofPeJ3eDHjSsylbVIOydeOuhm9V3Q4evScQ5u2lkNbgt2Jxs0GDgAkwzoN"
+      }
+    }
+  ],
+  "exact_result": {
+    "hamiltonian_matrix": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2xopq6joJ6WX1RSlJgXn1+UkgqScEvMKU4FihdnJBakAvkaFjoKFpo6CrUK5AIuBjD4sZ8BFTTg538goB5dnpB6dP4DEvWTaj6p5qG7h9r2kxw+9rQ1n1T9hMKH1u4jFD4Dnn4IxBel4UOq+3/A3QMA+7tfFw=="
+    },
+    "gibbs_state": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOgoWmjoKtQpkA67QXVfrDJ+dtmdAA/45oYoz27fZo/PRxWFgL3eRQb//IXsjsU8G/z9thcuj82HANjz19aXH6zHUwcwhVj8u99RZ9S1z7tgBF9ewkg2Xd1lvD6PR1cPsQbcP3T3E2o9uD8w96OK49KujqYPx0f2F7h70cEXnw0Da1L+vy/ZusAcAUTaPeA=="
+    },
+    "energy": -2.0822765173455675,
+    "entropy": 1.5680743556232413,
+    "cost": -5.21842522859205,
+    "eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFAAu/mO7xZ2OzbS/YPX/a/qZhfY3oHQv05N4u4i19hOh9DPGMrG5xzbYv9tpesphyzX7e5YWll1brtsDAGgTPBA="
+    },
+    "hamiltonian_eigenvalues": {
+      "__type__": "ndarray",
+      "__value__": "eJyb7BfqGxDJyFDGUK2eklqcXKRupaBuk2ahrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RoWOpo6CrUKFACuUDWdEtvbnAde/bi0sl6L80BA6iGn65vP2v/6DwL37fkZQOCBPZj7/7s9I5j/w/41WD2jAwB/xDxu"
+    }
+  }
+}
