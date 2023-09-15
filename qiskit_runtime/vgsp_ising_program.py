@@ -5,12 +5,13 @@ import numpy as np
 from mthree import M3Mitigation
 from mthree.classes import QuasiCollection, QuasiDistribution
 from mthree.utils import final_measurement_mapping
-from qiskit import QuantumCircuit, transpile, Aer, IBMQ
+from qiskit import QuantumCircuit, transpile, Aer
 from qiskit.algorithms import optimizers
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Statevector, partial_trace
 from qiskit_aer.noise import NoiseModel
 from qiskit_experiments.library import StateTomography
+from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime.program import UserMessenger
 from scipy.special import xlogy
 
@@ -35,7 +36,7 @@ class GibbsIsing:
 			skip_transpilation=False,
 			use_measurement_mitigation=True,
 			noise_model=None,
-			provider=None,
+			token=None,
 			**kwargs
 	):
 		"""
@@ -105,11 +106,16 @@ class GibbsIsing:
 		self.tomography_shots = max(self.shots, tomography_shots)
 		# Setup backend
 		self.backend = backend
-		self.backend_name = backend.name()
+		# noinspection PyBroadException
+		try:
+			self.backend_name = backend.name()
+		except:
+			self.backend_name = backend.name
 		# Noise model
 		if isinstance(noise_model, str):
 			self.noise_model_backend_name = noise_model
-			self.noise_model_backend = provider.get_backend(self.noise_model_backend_name)
+			self.noise_model_backend = QiskitRuntimeService(channel='ibm_quantum', token=token).get_backend(
+				self.noise_model_backend_name)
 			self.noise_model = NoiseModel.from_backend(self.noise_model_backend)
 			self.backend.set_options(noise_model=self.noise_model)
 		elif isinstance(noise_model, dict):
@@ -252,6 +258,7 @@ class GibbsIsing:
 		if self.use_measurement_mitigation:
 			results = self.mit.apply_correction(results, self.mappings)
 		else:
+			# noinspection PyTypeChecker
 			results = QuasiCollection([QuasiDistribution([(key, value / self.shots) for key, value in result.items()])
 			                           for result in results])
 		# Post-process results
@@ -456,6 +463,7 @@ class GibbsIsing:
 		)
 		self.publish(message)
 
+	# noinspection PyTypeChecker
 	def statevector_tomography(self):
 		"""
 		Perform statevector tomography
@@ -505,17 +513,10 @@ def main(
 		skip_transpilation=False,
 		use_measurement_mitigation=True,
 		noise_model=None,
-		credentials=None
+		token=None
 ):
 	if not isinstance(beta, list):
 		beta = [beta]
-	if isinstance(noise_model, str):
-		if credentials:  # If running on IBM cloud
-			provider = IBMQ.enable_account(**credentials)
-		else:  # If testing through test_qiskit_program.py locally
-			provider = IBMQ.load_account()
-	else:
-		provider = None
 	# Start program
 	multiple_results = []
 	for b in beta:
@@ -537,7 +538,7 @@ def main(
 				skip_transpilation=skip_transpilation,
 				use_measurement_mitigation=use_measurement_mitigation,
 				noise_model=noise_model,
-				provider=provider,
+				token=token,
 				N=i
 			)
 			result = gibbs.run(x0)
