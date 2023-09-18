@@ -128,5 +128,5 @@ if __name__ == '__main__':
 	# print("Program uploaded")
 	# print(f"Program ID: {program_id}")
 
-	service.update_program(program_id='vgsp-ising-x6EJzR51qN', data='vgsp_ising_program.py', metadata=meta)
+	service.update_program(program_id='vgsp-ising-2N4DRAD24N', data='vgsp_ising_program.py', metadata=meta)
 	print("Program updated")

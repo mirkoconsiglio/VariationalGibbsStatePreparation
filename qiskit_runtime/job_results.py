@@ -25,7 +25,7 @@ def decode_interim_results(data, N=1):
 
 
 def main():
-	service = QiskitRuntimeService()
+	service = QiskitRuntimeService(name='personal')
 	jobs = service.jobs()
 	append = True  # Append results or overwrite
 	for job in jobs:

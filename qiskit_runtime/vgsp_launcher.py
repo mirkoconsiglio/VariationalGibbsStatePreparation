@@ -13,12 +13,12 @@ def main():
 	tomography_shots = 100000
 	N = 1  # Can be split manually into a list
 	split_betas = True  # Split each beta into a separate job with N runs each
-	program_id = 'vgsp-ising-x6EJzR51qN'  # program id
+	program_id = 'vgsp-ising-2N4DRAD24N'  # program id
 	backend_name = 'ibmq_qasm_simulator'
 	noise_model = 'ibm_hanoi'
 	options = dict(backend=backend_name)  # Choose backend (required)
 	# Initiate service
-	service = QiskitRuntimeService()
+	service = QiskitRuntimeService(name='personal')
 	if isinstance(noise_model, str):  # needed to simulate noise model based on backend you have access to
 		account = service.active_account()  # need to have credentials stored locally
 		token = account['token']
