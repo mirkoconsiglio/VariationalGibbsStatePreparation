@@ -9,16 +9,16 @@ def main():
 	J = 1.
 	h = 0.5
 	beta = [1e-10, 0.2, 0.5, 0.8, 1., 1.2, 2., 3., 4., 5.]
-	shots = 1024
-	tomography_shots = 8192
+	shots = 10000
+	tomography_shots = 100000
 	N = 1  # Can be split manually into a list
 	split_betas = True  # Split each beta into a separate job with N runs each
 	program_id = 'vgsp-ising-x6EJzR51qN'  # program id
 	backend_name = 'ibmq_qasm_simulator'
-	noise_model = 'ibm_nairobi'
+	noise_model = 'ibm_hanoi'
 	options = dict(backend=backend_name)  # Choose backend (required)
 	# Initiate service
-	service = QiskitRuntimeService(name='personal')
+	service = QiskitRuntimeService()
 	if isinstance(noise_model, str):  # needed to simulate noise model based on backend you have access to
 		account = service.active_account()  # need to have credentials stored locally
 		token = account['token']
@@ -63,7 +63,7 @@ def stream_results(job):
 		folder += f'_{noise_model}'
 	folder += f'/n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
 
-	print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name, append=True,
+	print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name, zip_file=False,
 	                       hamiltonian='Ising')
 
 	plot_result_min_avg_max(folder)

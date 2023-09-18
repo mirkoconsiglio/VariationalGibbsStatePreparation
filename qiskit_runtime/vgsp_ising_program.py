@@ -32,7 +32,7 @@ class GibbsIsing:
 			optimizer=None,
 			min_kwargs=None,
 			shots=1024,
-			tomography_shots=8192,
+			tomography_shots=None,
 			skip_transpilation=False,
 			use_measurement_mitigation=True,
 			noise_model=None,
@@ -71,11 +71,13 @@ class GibbsIsing:
 		if ancilla_reps is not None:
 			self.ancilla_reps = ancilla_reps
 		else:
-			self.ancilla_reps = 1
+			self.ancilla_reps = int(np.ceil(np.log2(self.n)))
 		if system_reps is not None:
 			self.system_reps = system_reps
 		else:
-			self.system_reps = self.n - 1
+			self.system_reps = int(np.ceil(np.log2(self.n)))
+		self.num_ancilla_params = None
+		self.num_system_params = None
 		self.skip_transpilation = skip_transpilation
 		self.use_measurement_mitigation = use_measurement_mitigation
 		# Ansatz
@@ -90,7 +92,7 @@ class GibbsIsing:
 			if optimizer:
 				self.min_kwargs = dict()
 			else:
-				self.min_kwargs = dict(maxiter=100 * self.n)
+				self.min_kwargs = dict(maxiter=100 * self.n, resamplings=n)
 		else:
 			self.min_kwargs = min_kwargs
 		# Optimizer
@@ -98,12 +100,15 @@ class GibbsIsing:
 			optimizer = 'SPSA'
 		self.optimizer = _optimizers.get(optimizer)(**self.min_kwargs, callback=self.callback)
 		# Bounds
-		self.bounds = [(-np.pi, np.pi)] * len(self.ansatz.parameters)
+		self.bounds = [(0, 2 * np.pi)] * len(self.ansatz.parameters)
 		# Shots
 		self.shots = shots
 		self.total_shots = self.shots * self.num_pauli_circuits
 		# Tomography shots
-		self.tomography_shots = max(self.shots, tomography_shots)
+		if tomography_shots is None:
+			self.tomography_shots = 10 * self.shots
+		else:
+			self.tomography_shots = max(self.shots, tomography_shots)
 		# Setup backend
 		self.backend = backend
 		# noinspection PyBroadException
@@ -167,16 +172,18 @@ class GibbsIsing:
 		self.publish(f"Initialized GibbsIsing object with n={self.n}, J={self.J}, h={self.h}, "
 		             f"beta={self.beta}, run={kwargs.get('N')}")
 
-	def run(self, x0=None):
+	def run(self, x0=None, init_i=None, i_add=None):
 		"""
 		Main entry point of the class, to run the VQA
 		:param x0: list of initial parameters
+		:param init_i:
+		:param i_add:
 		:return: dictionary of results
 		"""
 		self.iter = 0
 		self.nfev = 0
 		if x0 is None:
-			self.x0 = np.random.uniform(-np.pi, np.pi, self.ansatz.num_parameters)
+			self.x0 = self.init_params(init_i=init_i, i_add=i_add)
 		else:
 			self.x0 = x0
 		# Start optimization
@@ -242,6 +249,23 @@ class GibbsIsing:
 		if self.backend_name != 'aer_simulator':
 			self.user_messenger.publish(data)
 
+	def init_params(self, init_i=None, i_add=None):
+		if init_i is None:
+			init_i = 1 + self.beta / self.dimension
+		if i_add is None:
+			i_add = self.beta * self.n / self.dimension
+		x0_ancilla = []
+		i_list = [init_i]
+		for i in range(self.n):
+			new_i = np.product(i_list) + i_add
+			x0_ancilla.append(2 * np.arctan(1 / np.sqrt(new_i)))
+			i_list.append(new_i)
+
+		x0_ancilla = np.concatenate((x0_ancilla, np.zeros(self.num_ancilla_params - self.n)))
+		x0_system = np.random.uniform(0, 2 * np.pi, self.num_system_params) * 0.1
+
+		return np.concatenate((x0_ancilla, x0_system))
+
 	def cost_fun(self, x):
 		"""
 		Free energy cost function
@@ -284,7 +308,7 @@ class GibbsIsing:
 		self.energy = energy
 		self.eigenvalues = [i[1] for i in sorted(p.items())]  # Sort eigenvalues according to bit string
 		self.entropy = self.entropy_fun(self.eigenvalues)
-		self.cost = self.energy - self.inverse_beta * self.entropy
+		self.cost = self.beta * self.energy - self.entropy
 
 		return self.cost
 
@@ -364,11 +388,11 @@ class GibbsIsing:
 		terms = dict()
 		if J != 0:
 			if n == 2:
-				terms.update(XX=[-J, [[0, 1]]])
+				terms.update(XX=[-0.5 * J, [[0, 1]]])
 			elif n > 2:
-				terms.update(XX=[-J, [[i, (i + 1) % n] for i in range(n)]])
+				terms.update(XX=[-0.5 * J, [[i, (i + 1) % n] for i in range(n)]])
 		if h != 0:
-			terms.update(Z=[-h, [[i] for i in range(n)]])
+			terms.update(Z=[-0.25 * h, [[i] for i in range(n)]])
 
 		return terms
 
@@ -395,15 +419,29 @@ class GibbsIsing:
 		:return: ancilla PQC
 		"""
 		qc = QuantumCircuit(n)
-		for _ in range(self.ancilla_reps):
-			for i in range(n):
+
+		# Layers
+		for l in range(self.ancilla_reps):
+			for i in range(self.n):
 				qc.ry(next(self.theta), i)
-				if i > 0:
-					qc.cx(i - 1, i)
+			for i in range(0, self.n, 2):
+				j = (i + 1) % self.n
+				if l % 2 != 0:
+					i, j = j, i
+				qc.cx(i, j)
+			if self.n == 2:
+				break
+			for i in range(1, self.n, 2):
+				j = (i + 1) % self.n
+				if l % 2 != 0:
+					i, j = j, i
+				qc.cx(i, j)
 
 		# Last one-qubit layer
 		for i in range(n):
 			qc.ry(next(self.theta), i)
+
+		self.num_ancilla_params = qc.num_parameters
 
 		return qc
 
@@ -421,6 +459,8 @@ class GibbsIsing:
 			if n > 2:
 				for i in range(1, n, 2):
 					self.add_ising_gate(qc, i, (i + 1) % n)
+
+		self.num_system_params = qc.num_parameters
 
 		return qc
 
@@ -506,6 +546,8 @@ def main(
 		ancilla_reps=None,
 		system_reps=None,
 		x0=None,
+		init_i=None,
+		i_add=None,
 		optimizer=None,
 		min_kwargs=None,
 		shots=1024,
@@ -541,7 +583,7 @@ def main(
 				token=token,
 				N=i
 			)
-			result = gibbs.run(x0)
+			result = gibbs.run(x0, init_i, i_add)
 
 			results.append(result)
 		# Add to our results

@@ -25,7 +25,7 @@ def decode_interim_results(data, N=1):
 
 
 def main():
-	service = QiskitRuntimeService(name='personal')
+	service = QiskitRuntimeService()
 	jobs = service.jobs()
 	append = True  # Append results or overwrite
 	for job in jobs:
@@ -56,7 +56,7 @@ def main():
 		folder += f'/n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
 
 		print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name, append=append,
-		                       hamiltonian='Ising')
+		                       zip_file=False, hamiltonian='Ising')
 
 
 if __name__ == '__main__':
