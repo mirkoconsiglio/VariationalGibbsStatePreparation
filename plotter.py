@@ -185,7 +185,12 @@ def plot_density(folder, cmap=shiftedColorMap(_colour_map, cycle=0.5), reverse=F
 		d = dict(left=0.05, bottom=0.17, right=0.95, top=1, wspace=0.1, hspace=0.05)
 	fig.subplots_adjust(**d)
 
-	fig.savefig(f'figures/Bar3D.pdf', bbox_inches='tight')
+	filename = 'figures/Bar3D'
+	if reverse:
+		filename += '_reverse'
+
+	fig.savefig(f'{filename}.pdf', bbox_inches='tight')
+	fig.savefig(f'{filename}.png', dpi=600, transparent=True, bbox_inches='tight')
 
 	if show:
 		plt.show()
@@ -226,7 +231,45 @@ def plot_result_min_avg_max(folder, show=True):
 		plt.show()
 
 
-def plot_multiple_results_max(directory, show=True, kld=True):
+def plot_multiple_results_max(directory, show=True):
+	fig1, ax1 = plt.subplots(figsize=(12, 8))
+	ax1.set_xscale('function', functions=(forward, reverse))
+	ax1.set_xlabel(r'$\beta$')
+	ax1.set_ylabel(r'$F$')
+	ax1.set_xlim(-0.02, 5.3)
+	ax1.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+	ax1.grid(visible=True, which='both', axis='both')
+
+	markers = ['o', 's', 'd', '^', 'X']
+	colours = _colour_list[0::28]
+
+	h = None
+	for i, folder in enumerate(filter(lambda x: isdir(f'{directory}/{x}'), listdir(directory))):
+		n = None
+		beta = []
+
+		fidelity = []
+		for file in filter(lambda x: x.endswith('.json'), listdir(f'{directory}/{folder}')):
+			with open(f'{directory}/{folder}/{file}', 'r') as f:
+				data = json.load(f)
+			n = data['metadata']['n']
+			h = data['metadata']['h']
+
+			beta.append(data['metadata']['beta'])
+			fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
+
+		ax1.plot(beta, fidelity, marker=markers[i], color=colours[i], linestyle='-', label=f'$n={n}$')
+
+	ax1.legend()
+
+	fig1.savefig(f'{directory}/fidelity_plot_{h:.2f}.pdf', bbox_inches='tight')
+	fig1.savefig(f'{directory}/fidelity_plot_{h:.2f}.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
+def plot_multiple_results_max_2(directory, show=True, kld=True):
 	fig1, ax1 = plt.subplots(figsize=(12, 8))
 	ax1.set_xscale('function', functions=(forward, reverse))
 	ax1.set_xlabel(r'$\beta$')
@@ -597,6 +640,88 @@ def plot_3multiple_results_max(directories, show=True):
 		plt.show()
 
 
+def plot_3multiple_results_max_2(super_directory, show=True):
+	fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=True, constrained_layout=True)
+	axes = axes.flatten()
+
+	for i, ax in enumerate(axes):
+		ax.set_xscale('function', functions=(forward, reverse))
+		ax.set_xlim(-0.02, 5.3)
+		ax.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+		ax.grid(visible=True, which='both', axis='both')
+
+	markers = ['o', 's', 'd', '^', 'X', '2']
+	colours = _colour_list[0::28]
+
+	for ax, directory in zip(axes,
+	                         list(filter(lambda x: isdir(f'{super_directory}/{x}'), listdir(super_directory)))[::4]):
+		for i, folder in enumerate(filter(lambda x: isdir(f'{super_directory}/{directory}/{x}'),
+		                                  listdir(f'{super_directory}/{directory}'))):
+			n = None
+			beta = []
+			fidelity = []
+			for file in filter(lambda x: x.endswith('.json'), listdir(f'{super_directory}/{directory}/{folder}')):
+				with open(f'{super_directory}/{directory}/{folder}/{file}', 'r') as f:
+					data = json.load(f)
+				n = data['metadata']['n']
+				beta.append(data['metadata']['beta'])
+				fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
+
+			ax.plot(beta, fidelity, linewidth=2, markersize=8, marker=markers[i], color=colours[i], linestyle='-',
+			        label=f'$n={n}$')
+
+	for gamma, ax in zip([0.1, 0.5, 0.9], axes):
+		ax.legend(title=fr'$\gamma = {gamma}$', loc='lower left')
+
+	fig.savefig('figures/3fidelity_statevector.pdf', bbox_inches='tight')
+	fig.savefig('figures/3fidelity_statevector.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
+def plot_9multiple_results_max(super_directory, show=True):
+	fig, axes = plt.subplots(3, 3, figsize=(18, 18), sharex=True, sharey=True, constrained_layout=True)
+	axes = axes.flatten()
+
+	for i, ax in enumerate(axes):
+		ax.set_xscale('function', functions=(forward, reverse))
+		if i - 6 >= 0:
+			ax.set_xlabel(r'$\beta$')
+		if np.mod(i, 3) == 0:
+			ax.set_ylabel(r'$F$')
+		ax.set_xlim(-0.02, 5.3)
+		ax.set_xticks([0, 0.2, 0.5, 1, 2, 3, 4, 5])
+		ax.grid(visible=True, which='both', axis='both')
+
+	markers = ['o', 's', 'd', '^', 'X', '2']
+	colours = _colour_list[0::28]
+
+	for ax, directory in zip(axes, filter(lambda x: isdir(f'{super_directory}/{x}'), listdir(super_directory))):
+		for i, folder in enumerate(filter(lambda x: isdir(f'{super_directory}/{directory}/{x}'),
+		                                  listdir(f'{super_directory}/{directory}'))):
+			n = None
+			beta = []
+			fidelity = []
+			for file in filter(lambda x: x.endswith('.json'), listdir(f'{super_directory}/{directory}/{folder}')):
+				with open(f'{super_directory}/{directory}/{folder}/{file}', 'r') as f:
+					data = json.load(f)
+				n = data['metadata']['n']
+				beta.append(data['metadata']['beta'])
+				fidelity.append(np.max(data['metrics']['noiseless_fidelity']))
+
+			ax.plot(beta, fidelity, marker=markers[i], color=colours[i], linestyle='-', label=f'$n={n}$')
+
+	for gamma, ax in zip([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], axes):
+		ax.legend(title=fr'$\gamma = {gamma}$', loc='lower left')
+
+	fig.savefig('figures/9fidelity_statevector.pdf', bbox_inches='tight')
+	fig.savefig('figures/9fidelity_statevector.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
 def plot_scaling_shots(directory, show=True):
 	fig1, ax1 = plt.subplots(figsize=(12, 8))
 	ax1.set_xlabel(r'Shots')
@@ -725,14 +850,66 @@ def plot_shots_scaling(file, show=True):
 		plt.show()
 
 
+def plot_9shots_scaling(directory, show=True):
+	fig, axes = plt.subplots(3, 3, figsize=(18, 18), sharex=True, sharey=True, constrained_layout=True)
+	axes = axes.flatten()
+
+	for i, ax in enumerate(axes):
+		ax.set_xscale('function', functions=(forward, reverse))
+		if i - 6 >= 0:
+			ax.set_xlabel(r'$\beta$')
+		if np.mod(i, 3) == 0:
+			ax.set_ylabel(r'$\alpha$')
+		ax.set_xscale('log')
+		ax.grid(visible=True, which='major', axis='both')
+
+	for gamma, ax, file in zip([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], axes,
+	                           filter(lambda x: x.endswith('.json'), listdir(directory))):
+		with open(f'{directory}/{file}', 'r') as f:
+			data = json.load(f)
+
+		axins = inset_axes(
+			ax,
+			width='60%',
+			height='5%',
+			loc='lower left',
+			bbox_to_anchor=(0.113, 0.23, 1, 1),
+			bbox_transform=ax.transAxes
+		)
+		cb = fig.colorbar(mappable=mapper(0, 50, shiftedColorMap(_colour_map, start=0., stop=102 / 256)), cax=axins,
+		                  orientation='horizontal')
+		cb.set_label(label='Eigenstate', size='large', weight='bold')
+
+		ax.text(0.58, 0.4, fr'$\gamma={gamma}$', transform=ax.transAxes, verticalalignment='top')
+
+		colours = _colour_list[0::2][:len(data)]
+
+		for i, d in enumerate(data):
+			ax.plot(*zip(*d), marker='d', color=colours[i], linestyle='-')
+
+	fig.savefig(f'figures/9shots_scaling.pdf', bbox_inches='tight')
+	fig.savefig(f'figures/9shots_scaling.png', dpi=600, transparent=True, bbox_inches='tight')
+
+	if show:
+		plt.show()
+
+
 if __name__ == '__main__':
 	# plot_3multiple_results_max(['qulacs/data/statevector_h_0.50', 'qulacs/data/statevector_h_1.00', 'qulacs/data/statevector_h_1.50'])
 	# plot_multiple_results_max('qiskit_runtime/jobs/ibmq_qasm_simulator_ibmq_guadalupe', kld=False)
-	plot_multiple_results_max_extra('qiskit_runtime/test/ibm_nairobi',
-	                                'qiskit_runtime/old_jobs/ibm_nairobi/n_3_J_1.00_h_0.50_shots_1024')
+	# plot_multiple_results_max('qiskit_runtime/jobs/ibmq_guadalupe')
+	# plot_multiple_results_max('qulacs/L_BFGS_B/exact_gamma_1.00_h_1.00')
+	# plot_result_min_avg_max('qulacs/optimize_U_A/exact')
+	# plot_result_min_avg_max('qulacs/optimize_U_S/exact')
+	# plot_multiple_results_max_extra('qiskit_runtime/test/ibm_nairobi',
+	#                                 'qiskit_runtime/old_jobs/ibm_nairobi/n_3_J_1.00_h_0.50_shots_1024')
 	# plot_density('qiskit_runtime/jobs/ibm_nairobi/n_2_J_1.00_h_0.50_shots_1024')
+	# plot_density('qiskit_runtime/jobs/ibm_nairobi/n_2_J_1.00_h_0.50_shots_1024', reverse=True)
 	# plot_shots_scaling('data_shots_scaling.json')
 	# plot_scaling_shots('qulacs/scaling_shots')
 	# plot_scaling_iter('qulacs/scaling_iterations')
 	# plot_scaling_layers('qulacs/scaling_layers')
+	# plot_9shots_scaling('data_shots_scaling')
+	# plot_9multiple_results_max('qulacs/XY_2')
+	plot_multiple_results_max('qiskit_runtime/jobs/ibm_hanoi')
 	pass
