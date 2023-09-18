@@ -48,11 +48,11 @@ def main():
 		J = results[0][0].get('J')
 		h = results[0][0].get('h')
 		shots = results[0][0].get('shots')
-		noise_model = results[0][0].get('noise_model')
+		noise_model_backend = results[0][0].get('noise_model_backend')
 
 		folder = f'jobs/{backend_name}'
-		if isinstance(noise_model, str):
-			folder += f'_{noise_model}'
+		if isinstance(noise_model_backend, str):
+			folder += f'_{noise_model_backend}'
 		folder += f'/n_{n}_J_{J:.2f}_h_{h:.2f}_shots_{shots}'
 
 		print_multiple_results(results, output_folder=folder, job_id=job_id, backend=backend_name, append=append,

@@ -15,7 +15,7 @@ def main():
 	split_betas = True  # Split each beta into a separate job with N runs each
 	program_id = 'vgsp-ising-2N4DRAD24N'  # program id
 	backend_name = 'ibmq_qasm_simulator'
-	noise_model = 'ibm_hanoi'
+	noise_model = 'ibm_nairobi'
 	options = dict(backend=backend_name)  # Choose backend (required)
 	# Initiate service
 	service = QiskitRuntimeService(name='personal')
